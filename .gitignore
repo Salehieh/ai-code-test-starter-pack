@@ -1,0 +1,26 @@
+# Beroenden
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Byggfiler
+dist/
+build/
+
+# Miljövariabler
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# MacOS
+.DS_Store
+
+# Loggar
+logs
+*.log
+
+# Täckningsrapporter
+coverage/
+.nyc_output/
