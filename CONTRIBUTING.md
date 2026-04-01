@@ -27,6 +27,7 @@ Examples of valid commit messages:
 -   **docs:** `docs: update ARCHITECTURE.md with new decisions`
 -   **test:** `test: add integration test for agent service`
 -   **refactor:** `refactor: simplify openai client implementation`
+-   **chore:** `chore: set up core project infrastructure`
 
 ### Tests
 

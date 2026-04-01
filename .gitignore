@@ -24,3 +24,4 @@ logs
 # Täckningsrapporter
 coverage/
 .nyc_output/
+.vercel

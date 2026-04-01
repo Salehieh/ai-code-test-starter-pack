@@ -1,29 +1,61 @@
-import express, { Request, Response } from 'express';
-import dotenv from 'dotenv';
-
-// Ladda in miljövariabler från .env
-dotenv.config();
+import express, { Request, Response, NextFunction } from 'express';
+import 'dotenv/config';
+import { handleAgentRequest } from './api/agent.controller';
+import { BaseError } from './core/errors';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware för att kunna ta emot JSON
+// === MIDDLEWARE ===
+// Tolkar inkommande JSON-anrop
 app.use(express.json());
-
-// Servera statiska filer från 'public'-mappen (Vår interaktiva demo!)
+// Servar vår interaktiva demo från 'public'-mappen
 app.use(express.static('public'));
 
-// Vår "glödlampa" - Health check endpoint
+
+// === ROUTES ===
+// En enkel "health check" för att se att servern lever
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok' });
 });
 
-// Starta bara servern om filen körs direkt (inte om den importeras av våra tester)
+// Här är motorvägen: Alla anrop till /api/agent skickas till vår controller
+app.post('/api/agent', handleAgentRequest);
+
+
+// === CENTRAL FELHANTERARE ===
+// Detta är vårt säkerhetsnät. Alla fel som kastas och skickas vidare med 'next(error)'
+// hamnar här. Detta säkerställer att vi alltid skickar ett snyggt,
+// formaterat fel till klienten istället för att krascha.
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error('💥 Ett fel inträffade:', err);
+
+  if (err instanceof BaseError && err.isOperational) {
+    return res.status(err.statusCode).json({
+      error: {
+        name: err.name,
+        message: err.message,
+      },
+    });
+  }
+
+  // För oväntade, icke-operationella fel
+  res.status(500).json({
+    error: {
+      name: 'INTERNAL_SERVER_ERROR',
+      message: 'Ett oväntat fel inträffade på servern.',
+    },
+  });
+});
+
+
+// === SERVER START ===
+// Starta bara servern om filen körs direkt (inte importeras av tester)
 if (require.main === module) {
   app.listen(port, () => {
-    console.log(`🚀 Server is running on http://localhost:${port}`);
+    console.log(`🚀 Servern är igång på http://localhost:${port}`);
   });
 }
 
-// Vi exporterar appen så att Supertest kan använda den i nästa steg
+// Exportera appen för att våra tester (Supertest) ska kunna använda den
 export default app;
