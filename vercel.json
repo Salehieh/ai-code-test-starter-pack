@@ -2,6 +2,10 @@
     "version": 2,
     "builds": [
       {
+        "src": "public/**/*",
+        "use": "@vercel/static"
+      },
+      {
         "src": "src/index.ts",
         "use": "@vercel/node"
       }
@@ -14,6 +18,10 @@
       {
         "src": "/health",
         "dest": "/src/index.ts"
+      },
+      {
+        "src": "/(.*)",
+        "dest": "/public/$1"
       }
     ]
   }
