@@ -7,7 +7,7 @@
     "start": "ts-node src/index.ts",
     "dev": "ts-node src/index.ts",
     "test": "jest",
-    "build": "rm -rf dist && tsc && copyfiles -u 1 public/**/* dist/"
+    "build": "rm -rf dist && tsc && copyfiles -f public/* dist/"
   },
   "repository": {
     "type": "git",
