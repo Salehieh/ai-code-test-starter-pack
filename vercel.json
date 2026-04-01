@@ -8,8 +8,12 @@
     ],
     "routes": [
       {
-        "src": "/(.*)",
-        "dest": "src/index.ts"
+        "src": "/api/(.*)",
+        "dest": "/src/index.ts"
+      },
+      {
+        "src": "/health",
+        "dest": "/src/index.ts"
       }
     ]
   }
