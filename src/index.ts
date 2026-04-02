@@ -1,6 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
 import 'dotenv/config';
-import { handleAgentRequest } from './api/agent.controller';
+import { handleAgentRequest } from './features/proposal-agent/proposal-agent.controller';
 import { BaseError } from './core/errors';
 
 const app = express();

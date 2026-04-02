@@ -1,3 +1,35 @@
+### **ACTUAL ARCHITECTURE.md** ###
+
+* I vår ARCHITECTURE.md kommer vi kort att nämna de andra alternativen och varför vi valde bort dem.
+
+Exempeltext: "För datakontrakt valdes en modulär, co-located strategi framför en central 'types'-fil för att maximera kohesion och stödja långsiktig underhållsbarhet. För interaktion med Proposales API valdes en klass-baserad SDK för dess explicita beroendehantering och inkapsling, i enlighet med principerna om minimala, rena abstraktioner."
+
+
+
+
+
+* API Client Strategy: För interaktion med Proposales API har vi auto-genererat TypeScript-typer direkt från deras OpenAPI-specifikation med openapi-typescript. Detta garanterar fullständig typsäkerhet under utveckling. För detta uppdrag har vi medvetet valt bort runtime-validering (t.ex. med Zod) av API-svaren för att prioritera och fokusera valideringsarbetet på de mer oförutsägbara LLM-utdata, där robusthet genom kontrakt ger störst värde.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### **Template 3: `ARCHITECTURE.md` (Your Winning Manifest)**
 
 ```markdown

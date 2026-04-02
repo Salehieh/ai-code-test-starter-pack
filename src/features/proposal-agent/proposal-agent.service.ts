@@ -1,5 +1,5 @@
-import { getStructuredResponse } from '../core/llm-utils';
-import { TaskInput, ProposalSchema, Proposal } from '../types'; // Exempel-typer
+import { getStructuredResponse } from '../../core/llm-utils';
+import { TaskInput, ProposalSchema, Proposal } from '../../types'; // Exempel-typer
 
 /**
  * Detta är vår rena kärnlogik, helt isolerad från API-ramverk.

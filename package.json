@@ -7,7 +7,8 @@
     "start": "ts-node src/index.ts",
     "dev": "ts-node src/index.ts",
     "test": "jest",
-    "build": "rm -rf dist && tsc && cp -R public/ dist/"
+    "build": "rm -rf dist && tsc && cp -R public/ dist/",
+    "db:seed": "ts-node scripts/seed-library.ts"
   },
   "repository": {
     "type": "git",
@@ -41,6 +42,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "jest": "^30.3.0",
+    "openapi-typescript": "^7.13.0",
     "prettier": "^3.8.1",
     "supertest": "^7.2.2",
     "ts-jest": "^29.4.6",
