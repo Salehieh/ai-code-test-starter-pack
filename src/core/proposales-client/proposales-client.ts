@@ -9,7 +9,7 @@ export class ProposalesClient {
   private readonly baseUrl = 'https://api.proposales.com';
 
   constructor(apiKey: string | undefined) {
-    if (!apiKey) throw new Error('API key saknas.');
+    if (!apiKey) throw new Error('API key is missing.');
     this.apiKey = apiKey;
   }
 
@@ -18,8 +18,8 @@ export class ProposalesClient {
     const response = await fetch(`${this.baseUrl}${endpoint}`, { ...options, headers });
     if (!response.ok) {
         const errorBody = await response.text();
-        console.error(`API-anrop misslyckades: ${response.status}`, errorBody);
-        throw new Error(`API-anrop till ${endpoint} misslyckades med status ${response.status}`);
+        console.error(`API request failed: ${response.status}`, errorBody);
+        throw new Error(`API request to ${endpoint} failed with status ${response.status}`);
     }
     if (response.status === 204) return null;
     return response.json();

@@ -1,56 +1,56 @@
 import { z } from 'zod';
 
-// Kontraktet för den strukturerade information vi extraherar från en ostrukturerad RFP.
+// The contract for the structured information we extract from an unstructured RFP.
 export const ExtractedRequirementsSchema = z.object({
-  eventType: z.string().describe("Typen av event, t.ex. 'board meeting', 'product launch', 'wedding'"),
-  guestCount: z.number().positive().describe("Antalet gäster"),
+  eventType: z.string().describe("The type of event, e.g., 'board meeting', 'product launch', 'wedding'"),
+  guestCount: z.number().positive().describe("The number of guests"),
   dates: z.object({
-    start: z.string().datetime().describe("Startdatum och tid i ISO 8601-format"),
-    end: z.string().datetime().describe("Slutdatum och tid i ISO 8601-format"),
-  }).describe("Eventets datum"),
+    start: z.string().datetime().describe("Start date and time in ISO 8601 format"),
+    end: z.string().datetime().describe("End date and time in ISO 8601 format"),
+  }).describe("The dates of the event"),
   budget: z.object({
     min: z.number().optional(),
     max: z.number().optional(),
     currency: z.string().default('EUR'),
-  }).describe("Kundens budget"),
-  specialRequests: z.array(z.string()).describe("En lista över specifika önskemål, t.ex. 'projector', 'dietary accommodations'"),
+  }).describe("The customer's budget"),
+  specialRequests: z.array(z.string()).describe("A list of specific requests, e.g., 'projector', 'dietary accommodations'"),
 });
 
-// Kontraktet för ett enskilt steg i agentens plan.
-// Vi använder discriminatedUnion för maximal typsäkerhet.
+// The contract for a single step in the agent's plan.
+// We use discriminatedUnion for maximum type safety.
 export const ProposalPlanStepSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('add_product'),
-    productId: z.string().describe("ID för produkten från hotellets innehållsbibliotek"),
-    justification: z.string().describe("Varför denna produkt valdes baserat på RFP:n"),
+    productId: z.string().describe("ID of the product from the hotel's content library"),
+    justification: z.string().describe("Why this product was chosen based on the RFP"),
   }),
   z.object({
     type: z.literal('add_custom_text'),
-    title: z.string().describe("Rubriken för textblocket"),
-    body: z.string().describe("Brödtexten som ska skrivas, t.ex. en välkomsthälsning"),
+    title: z.string().describe("The heading for the text block"),
+    body: z.string().describe("The body text to be written, e.g., a welcome greeting"),
   }),
 ]);
 
-// Kontraktet för hela planen, som är en sekvens av steg.
+// The contract for the entire plan, which is a sequence of steps.
 export const ProposalPlanSchema = z.array(ProposalPlanStepSchema);
 
-// Kontraktet för resultatet av vår kvalitetsutvärdering.
+// The contract for the result of our quality evaluation.
 export const EvaluationResultSchema = z.object({
   completeness: z.object({
     score: z.number().min(1).max(5),
     reasoning: z.string(),
-  }).describe("Hur väl alla delar av RFP:n har adresserats."),
+  }).describe("How well all parts of the RFP have been addressed."),
   relevance: z.object({
     score: z.number().min(1).max(5),
     reasoning: z.string(),
-  }).describe("Hur relevanta de valda produkterna är."),
+  }).describe("How relevant the chosen products are."),
   professionalism: z.object({
     score: z.number().min(1).max(5),
     reasoning: z.string(),
-  }).describe("Kvaliteten på den genererade texten och tonen."),
+  }).describe("The quality of the generated text and tone."),
 });
 
-// Vi exporterar även TypeScript-typerna för enkel användning i vår kod.
+// We also export the TypeScript types for easy use in our code.
 export type ExtractedRequirements = z.infer<typeof ExtractedRequirementsSchema>;
 export type ProposalPlan = z.infer<typeof ProposalPlanSchema>;
 export type EvaluationResult = z.infer<typeof EvaluationResultSchema>;

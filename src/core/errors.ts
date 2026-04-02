@@ -1,5 +1,5 @@
-// En basklass för alla våra operationella fel.
-// 'operational' betyder att det är ett förväntat fel, inte en bugg i koden.
+// A base class for all our operational errors.
+// 'operational' means it's an expected error, not a bug in the code.
 export class BaseError extends Error {
     public readonly statusCode: number;
     public readonly isOperational: boolean;
@@ -16,23 +16,23 @@ export class BaseError extends Error {
     }
   }
   
-  // Används för API-fel som vi skapar, t.ex. "Not Found".
+  // Used for API errors we create, e.g., "Not Found".
   export class ApiError extends BaseError {
     constructor(name: string, statusCode = 500, description = 'Internal server error.') {
       super(name, statusCode, description, true);
     }
   }
   
-  // Används specifikt när Zod-validering av inkommande data misslyckas.
+  // Used specifically when Zod validation of incoming data fails.
   export class ValidationError extends BaseError {
     constructor(description = 'Validation failed.') {
       super('BAD_REQUEST', 400, description, true);
     }
   }
   
-  // Används för att kapsla in fel från externa tjänster som OpenAI.
+  // Used to encapsulate errors from external services like OpenAI.
   export class ExternalServiceError extends BaseError {
     constructor(name = 'EXTERNAL_SERVICE_ERROR', description = 'An external service failed.') {
-      super(name, 502, description, true); // 502 Bad Gateway är passande här
+      super(name, 502, description, true); // 502 Bad Gateway is appropriate here
     }
   }

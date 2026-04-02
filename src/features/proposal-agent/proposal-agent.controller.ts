@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-// Vi skapar ett enkelt schema här för RFP-inputen, kan flyttas till schemas.ts senare.
+// We create a simple schema here for the RFP input, can be moved to schemas.ts later.
 const RfpInputSchema = z.object({
   rfpText: z.string().min(20),
 });
@@ -15,10 +15,10 @@ export async function handleAgentRequest(req: Request, res: Response, next: Next
     }
     const { rfpText } = validationResult.data;
 
-    // Anpassa anropet till servicen när den är redo att ta emot texten.
+    // Adapt the call to the service when it's ready to receive the text.
     // const result = await generateProposalForCustomer(rfpText);
     
-    // Temporärt svar
+    // Temporary response
     res.status(200).json({ message: "Endpoint is wired up correctly.", receivedRfp: rfpText });
 
   } catch (error) {

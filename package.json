@@ -8,7 +8,8 @@
     "dev": "ts-node src/index.ts",
     "test": "jest",
     "build": "rm -rf dist && tsc && cp -R public/ dist/",
-    "db:seed": "ts-node scripts/seed-library.ts"
+    "db:seed": "ts-node scripts/seed-library.ts",
+    "db:ingest": "ts-node scripts/ingest.ts"
   },
   "repository": {
     "type": "git",
