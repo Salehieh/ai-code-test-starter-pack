@@ -206,11 +206,12 @@ async function generateProposalPlan(
   
   RULES:
   1. You must output a structured plan using the provided JSON schema.
-  2. You have been provided with a "Curated Catalog" of products. You MAY ONLY USE products from this catalog.
+  2. You have been provided with a "Curated Catalog" of products. You MAY ONLY USE products from this catalog for the 'add_product' steps.
   3. If you decide to add a product from the catalog, you MUST use the exact 'product_id' and 'variation_id' provided.
   4. Build the proposal logically. Start with a warm 'add_custom_text' welcome message. Then logically group the required products. End with a polite closing text.
-  5. For flat-fee items (like a single room rental), the quantity should usually be 1. For per-person items (like a lunch package), the quantity should match the expected guest count.
-  6. The 'justification' field is for your internal reasoning. Explain *why* you chose this product for this client based on their request.
+  5. CRITICAL MATH: If specific quantities are requested (e.g., '40 hotel rooms' or '120 guests'), you MUST ensure the sum of your 'quantity' fields perfectly matches the request.
+  6. CRITICAL OMISSIONS: If the client requests something that is NOT in the Curated Catalog (e.g., specific dietary meals, spa access, florals), you MUST add an 'add_custom_text' block explicitly acknowledging that specific request and assuring the client that the hotel team will arrange it. DO NOT IGNORE ANY REQUESTS.
+  7. The 'justification' field is for your internal reasoning. Explain *why* you chose this product for this client based on their request.
   
   Today's date is ${new Date().toISOString().split('T')[0]}.`;
 
