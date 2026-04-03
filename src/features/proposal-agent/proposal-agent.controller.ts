@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ValidationError } from '../../core/errors';
 import { ProposalAgentService } from './proposal-agent.service'; // Import our new service
 import { VectorStore } from '../../core/vector-store';
+import { ProposalesClient } from '../../core/proposales-client/proposales-client';
 
 const RfpInputSchema = z.object({
   rfpText: z.string().min(20, "RFP text must be at least 20 characters."),
@@ -42,15 +43,28 @@ export async function handleAgentRequest(req: Request, res: Response, next: Next
     );
     console.log('✅ "Plan" step completed.');
 
+    // === STEP 4: ASSEMBLE & EXECUTE ===
+    console.log('▶️ Starting "Assemble" step...');
+    const companyId = parseInt(process.env.PROPOSALES_COMPANY_ID || '0', 10);
+    if (!companyId) throw new Error("Critical Configuration Error: Missing PROPOSALES_COMPANY_ID");
+    
+    const apiPayload = ProposalAgentService.assembleProposal(proposalPlan, companyId);
+    console.log('✅ "Assemble" step completed.');
+
+    console.log('▶️ Sending to Proposales API...');
+    const proposalesClient = new ProposalesClient(process.env.PROPOSALES_API_KEY);
+    const finalResult = await proposalesClient.createProposal(apiPayload);
+    console.log(`✅ Draft Proposal Created: ${finalResult.proposal.url}`);
+
     console.log('--- 🏁 Agent Pipeline Finished ---');
 
-    // Return the full plan to verify it works.
+    // Return the final result to the client!
     res.status(200).json({
-      message: "Pipeline completed through step 3!",
+      message: "Agent pipeline completed successfully!",
       data: {
-        extractedRequirements,
-        curatedCatalog: retrievedProducts,
-        proposalPlan
+        proposalUrl: finalResult.proposal.url,
+        proposalUuid: finalResult.proposal.uuid,
+        debugPlan: proposalPlan // Returning the plan for debugging/visibility
       },
     });
 

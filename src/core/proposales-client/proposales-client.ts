@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import {
   ProposalesProduct, CreateProductPayload,
-  CreateProductPayloadSchema, CreateProductResponseSchema, GetProductsResponseSchema
+  CreateProductPayloadSchema, CreateProductResponseSchema, GetProductsResponseSchema,
+  CreateProposalPayload, CreateProposalPayloadSchema, CreateProposalResponseSchema
 } from './proposales-client.schemas';
 
 export class ProposalesClient {
@@ -38,5 +39,14 @@ export class ProposalesClient {
       body: JSON.stringify(validatedPayload)
     });
     return CreateProductResponseSchema.parse(responseData);
+  }
+
+  public async createProposal(payload: CreateProposalPayload) {
+    const validatedPayload = CreateProposalPayloadSchema.parse(payload);
+    const responseData = await this._fetch('/v3/proposals', {
+      method: 'POST',
+      body: JSON.stringify(validatedPayload)
+    });
+    return CreateProposalResponseSchema.parse(responseData);
   }
 }
