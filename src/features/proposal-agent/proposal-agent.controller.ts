@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { ValidationError } from '../../core/errors';
 import { ProposalAgentService } from './proposal-agent.service'; // Import our new service
+import { VectorStore } from '../../core/vector-store';
 
 const RfpInputSchema = z.object({
   rfpText: z.string().min(20, "RFP text must be at least 20 characters."),
@@ -15,7 +16,14 @@ export async function handleAgentRequest(req: Request, res: Response, next: Next
     }
     const { rfpText } = validationResult.data;
 
+    // Dependency Injection: Get the loaded VectorStore from Express locals
+    const vectorStore = req.app.locals.vectorStore as VectorStore;
+    if (!vectorStore) {
+        throw new Error("Critical Server Error: VectorStore is not initialized.");
+    }
+
     // Call the first step in our agent pipeline
+    console.log('\n--- 🤖 Agent Pipeline Initiated ---');
     console.log('▶️ Starting "Extract" step...');
     const extractedRequirements = await ProposalAgentService.extractRequirements(rfpText);
     console.log('✅ "Extract" step completed.');

@@ -27,6 +27,12 @@ try {
 const app = express();
 const port = process.env.PORT || 3000;
 
+// === DEPENDENCY INJECTION ===
+// We attach our global, loaded VectorStore to the Express application locals.
+// This allows any controller to access it without relying on a global import,
+// which is a much cleaner, more testable architectural pattern.
+app.locals.vectorStore = vectorStore;
+
 // === MIDDLEWARE ===
 // Parses incoming JSON requests
 app.use(express.json());
