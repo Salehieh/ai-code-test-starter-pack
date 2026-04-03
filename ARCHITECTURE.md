@@ -61,6 +61,36 @@ ProposalAssemblyTool: The final, deterministic code that calls the Proposales AP
 The agent's primary job is not to generate the final output directly, but to generate a plan that orchestrates the use of these tools in a logical sequence. This "Tool-Using" pattern is fundamental to creating reliable, extensible, and observable AI systems. It allows us to isolate non-determinism (the LLM's planning) from deterministic execution (the tools' actions), which is the cornerstone of treating "AI as an Engineering Discipline."
 
 
+**Pragmatic Boundary Enforcement (The `zod-to-json-schema` trade-off):**
+During development, it became clear that relying on abstraction libraries like `zod-to-json-schema` to translate complex Zod contracts into OpenAI's strict JSON Schema format was brittle and prone to silent failures. In accordance with the philosophy of "Enkla lösningar över smarta" (Simple solutions over clever ones) and to guarantee absolute control over the LLM instructions, the architecture intentionally bypasses this translation layer for complex schemas. 
+
+Instead, we employ a "double boundary":
+*   **Outbound (Deterministic):** A hand-crafted, hardcoded JSON Schema is passed directly to OpenAI's tool API. This guarantees the LLM receives unbroken, highly optimized instructions for the required data shape.
+*   **Inbound (Defensive):** The raw JSON string returned by the LLM is then strictly parsed and validated by our `zod` schema. 
+
+This isolates the non-deterministic "dragon" in a type-safe "cage," demonstrating that true robustness often requires shedding unreliable abstractions in favor of explicit, engineered contracts.
+
+
+
+
+
+
+
+
+
+____________________________________________________________________________________________________________
+
+OLD ARCHITECTURE.MD:
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -106,7 +136,14 @@ To ensure system integrity, `zod` schemas are used to validate:
 1.  **All incoming data** at the HTTP layer, protecting the system from invalid requests.
 2.  **All data received from the OpenAI API.** This is a critical step in building a reliable AI system. By validating the structure of the LLM response, we ensure that the rest of the system always operates on predictable and type-safe data, drastically reducing the risk of unexpected errors.
 
-This defensive approach is fundamental to moving from an AI prototype to a `reliable`, `production-grade` service.
+**Pragmatic Boundary Enforcement (The `zod-to-json-schema` trade-off):**
+During development, it became clear that relying on abstraction libraries like `zod-to-json-schema` to translate complex Zod contracts into OpenAI's strict JSON Schema format was brittle and prone to silent failures. In accordance with the philosophy of "Enkla lösningar över smarta" (Simple solutions over clever ones) and to guarantee absolute control over the LLM instructions, the architecture intentionally bypasses this translation layer for complex schemas. 
+
+Instead, we employ a "double boundary":
+*   **Outbound (Deterministic):** A hand-crafted, hardcoded JSON Schema is passed directly to OpenAI's tool API. This guarantees the LLM receives unbroken, highly optimized instructions for the required data shape.
+*   **Inbound (Defensive):** The raw JSON string returned by the LLM is then strictly parsed and validated by our `zod` schema. 
+
+This isolates the non-deterministic "dragon" in a type-safe "cage," demonstrating that true robustness often requires shedding unreliable abstractions in favor of explicit, engineered contracts.
 
 ### 5. Key Decision: A Testable Core
 By isolating all external API communication into a dedicated `OpenAIClient` class, we can easily and completely **mock** this layer in our integration tests.

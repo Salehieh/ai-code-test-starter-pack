@@ -1,11 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-// We create a simple schema here for the RFP input, can be moved to schemas.ts later.
-const RfpInputSchema = z.object({
-  rfpText: z.string().min(20),
-});
 import { ValidationError } from '../../core/errors';
-import { generateProposalForCustomer } from './proposal-agent.service';
+import { ProposalAgentService } from './proposal-agent.service'; // Import our new service
+
+const RfpInputSchema = z.object({
+  rfpText: z.string().min(20, "RFP text must be at least 20 characters."),
+});
 
 export async function handleAgentRequest(req: Request, res: Response, next: NextFunction) {
   try {
@@ -15,11 +15,16 @@ export async function handleAgentRequest(req: Request, res: Response, next: Next
     }
     const { rfpText } = validationResult.data;
 
-    // Adapt the call to the service when it's ready to receive the text.
-    // const result = await generateProposalForCustomer(rfpText);
-    
-    // Temporary response
-    res.status(200).json({ message: "Endpoint is wired up correctly.", receivedRfp: rfpText });
+    // Call the first step in our agent pipeline
+    console.log('▶️ Starting "Extract" step...');
+    const extractedRequirements = await ProposalAgentService.extractRequirements(rfpText);
+    console.log('✅ "Extract" step completed.');
+
+    // Right now we just return the extracted data to verify that it works.
+    res.status(200).json({
+      message: "Extraction successful!",
+      data: extractedRequirements,
+    });
 
   } catch (error) {
     next(error);
