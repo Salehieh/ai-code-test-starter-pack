@@ -39,3 +39,25 @@ export const CreateProductResponseSchema = z.object({
 // --- Derived types ---
 export type ProposalesProduct = z.infer<typeof ProposalesProductSchema>;
 export type CreateProductPayload = z.infer<typeof CreateProductPayloadSchema>;
+
+// --- Schemas for CREATING a Proposal (Step 4) ---
+export const CreateProposalPayloadSchema = z.object({
+  company_id: z.number(),
+  language: z.string().default('en'),
+  title_md: z.string().optional(),
+  description_md: z.string().optional(),
+  blocks: z.array(z.object({
+    content_id: z.number(),
+    type: z.literal('product-block').optional(),
+    quantity: z.number().optional() // Passed as additional block data
+  }).passthrough()).optional()
+});
+
+export const CreateProposalResponseSchema = z.object({
+  proposal: z.object({
+    uuid: z.string(),
+    url: z.string()
+  })
+});
+
+export type CreateProposalPayload = z.infer<typeof CreateProposalPayloadSchema>;

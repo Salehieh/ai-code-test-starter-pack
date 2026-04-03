@@ -8,6 +8,7 @@ import {
 import { getStructuredResponse } from '../../core/llm-utils';
 import { VectorStore } from '../../core/vector-store';
 import { ProposalesProduct } from '../../core/proposales-client/proposales-client.schemas';
+import { CreateProposalPayload } from '../../core/proposales-client/proposales-client.schemas';
 
 /**
  * Step 1 in our agent pipeline: Extract structured requirements from an unstructured RFP.
@@ -301,9 +302,55 @@ async function generateProposalPlan(
   }
 }
 
+/**
+ * Step 4 in our agent pipeline: "Assemble".
+ * A 100% deterministic function that maps the AI's logical plan into the exact
+ * JSON payload required by the Proposales API. No LLM involved here.
+ */
+function assembleProposal(plan: ProposalPlan, companyId: number): CreateProposalPayload {
+  console.log('\n--- 🚀 Starting assembleProposal (Deterministic Assembly) ---');
+
+  let descriptionMd = '';
+  const blocks: any[] = [];
+
+  // Add proposed dates to the top of the description if they exist
+  if (plan.proposedDates?.start || plan.proposedDates?.end) {
+      descriptionMd += `**Proposed Dates:** ${plan.proposedDates.start || 'TBD'} to ${plan.proposedDates.end || 'TBD'}\n\n`;
+  }
+
+  // Iterate through the steps and map them to the platform's constraints.
+  // Note: Proposales V3 'blocks' array only supports product/video blocks.
+  // Therefore, custom text is gracefully combined into the 'description_md' field.
+  for (const step of plan.steps) {
+      if (step.type === 'add_custom_text') {
+          descriptionMd += `# ${step.title}\n${step.body}\n\n`;
+      } else if (step.type === 'add_product') {
+          blocks.push({
+              content_id: step.variationId, // CRITICAL: The API requires variation_id here, not product_id
+              type: 'product-block',
+              quantity: step.quantity // Passed as additional block data
+          });
+      }
+  }
+
+  const payload: CreateProposalPayload = {
+      company_id: companyId,
+      language: 'en',
+      title_md: plan.title,
+      description_md: descriptionMd.trim(),
+      blocks: blocks
+  };
+
+  console.log(`✅ Mapped ${plan.steps.length} plan steps to ${blocks.length} API blocks and ${descriptionMd.length} chars of markdown.`);
+  console.log('--- 🏁 assembleProposal Completed ---\n');
+
+  return payload;
+}
+
 // We expose our service as an object of functions for easy mocking and testing.
 export const ProposalAgentService = {
   extractRequirements,
   retrieveProducts,
   generateProposalPlan,
+  assembleProposal,
 };
