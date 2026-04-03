@@ -87,6 +87,34 @@ This isolates the non-deterministic "dragon" in a type-safe "cage," demonstratin
 
 
 
+### 7. Domain Boundaries & Future Constraints Modeling
+
+While this architecture successfully demonstrates a semantic RAG pipeline, it intentionally simplifies the complex reality of hotel inventory management to focus on AI orchestration. In a full production environment, the following domain constraints would need to be addressed:
+
+*   **Inventory Rules & Dependencies (The "A La Carte" Assumption):** Currently, the LLM assumes all products in the `vector-store` are independent and freely combinable. In reality, hospitality inventory has strict dependency rules (e.g., a specific AV package might be incompatible with an outdoor terrace space, or a dietary meal might require the purchase of a base banquet package). A production system would require a deterministic Rule Engine that validates the LLM's proposed plan against these hidden inventory constraints before finalizing the proposal.
+*   **Dynamic Pricing & Availability:** The current system does not check real-time availability or dynamic pricing rules (e.g., weekend rates vs. weekday rates). The AI assumes a static catalog. Integrating live availability checks as a mandatory tool call *before* the final Assembly step would be critical to prevent the LLM from proposing fully booked resources.
+*   **Human-in-the-Loop (HITL) & Legal Binding:** In B2B hospitality, a proposal is often a legally binding contract. While this agent autonomously drafts the proposal, a production deployment would require a mandatory "Draft State" hand-off. The AI would assemble the proposal in the Proposales system as a draft, notifying a human sales manager for final review, pricing adjustments (discounts), and explicit approval before it is sent to the client. We do not allow the LLM to autonomously execute financially binding actions.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ____________________________________________________________________________________________________________
