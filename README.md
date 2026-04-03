@@ -69,7 +69,7 @@ You can also interact with the API directly via `curl` or any API client.
 curl -X POST http://localhost:3000/api/agent \
 -H "Content-Type: application/json" \
 -d '{
-  "query": "[YOUR QUERY HERE]"
+  "rfpText": "Hi, we are looking for a venue for a 2-day tech summit for 50 people. We will need a main conference room, a projector, and lunch on both days. We also have 3 vegans in the group."
 }'
 ```
 
