@@ -1,13 +1,18 @@
 import {
   ExtractedRequirements,
   ExtractedRequirementsSchema,
+  ProposalPlan,
+  ProposalPlanSchema,
+  ProposalPlanStep,
 } from './proposal-agent.schemas';
 import { getStructuredResponse } from '../../core/llm-utils';
+import { VectorStore } from '../../core/vector-store';
+import { ProposalesProduct } from '../../core/proposales-client/proposales-client.schemas';
 
 /**
- * Steg 1 i vår agent-pipeline: Extrahera strukturerade krav från en ostrukturerad RFP.
- * @param rfpText Den råa texten från kundens förfrågan.
- * @returns Ett promise som resolverar till ett validerat ExtractedRequirements-objekt.
+ * Step 1 in our agent pipeline: Extract structured requirements from an unstructured RFP.
+ * @param rfpText The raw text from the customer's request.
+ * @returns A promise resolving to a validated ExtractedRequirements object.
  */
 async function extractRequirements(rfpText: string): Promise<ExtractedRequirements> {
   const systemPrompt = `You are a highly intelligent data extraction agent. Your sole purpose is to analyze a user's Request for Proposal (RFP) and populate the fields of the 'format_response' tool.
@@ -127,7 +132,178 @@ async function extractRequirements(rfpText: string): Promise<ExtractedRequiremen
   }
 }
 
-// Vi bygger upp vår service som ett objekt av funktioner.
+/**
+ * Step 2 in our agent pipeline: "Smart Retrieve".
+ * Generates multiple specific search queries based on the extracted requirements,
+ * searches the vector database in parallel, and merges/deduplicates the results.
+ */
+async function retrieveProducts(
+  requirements: ExtractedRequirements,
+  vectorStore: VectorStore
+): Promise<ProposalesProduct[]> {
+  console.log('\n--- 🚀 Starting retrieveProducts ---');
+  
+  const searchQueries: string[] = [];
+
+  // 1. Base search: Event type + optional guest count (provides good context for rooms/venues)
+  let baseQuery = requirements.eventType || 'event space';
+  if (requirements.guestCount?.primary) {
+      baseQuery += ` for ${requirements.guestCount.primary} guests`;
+  }
+  searchQueries.push(baseQuery);
+
+  // 2. Specific searches for each "specialRequest"
+  if (requirements.specialRequests && requirements.specialRequests.length > 0) {
+      for (const request of requirements.specialRequests) {
+          // We retain the guest count in the context for specific requests too (e.g., "lunch for 50")
+          const query = requirements.guestCount?.primary 
+              ? `${request} for ${requirements.guestCount.primary}`
+              : request;
+          searchQueries.push(query);
+      }
+  }
+
+  console.log('🔍 Generated Semantic Search Queries:', searchQueries);
+
+  // 3. Execute all searches in parallel for maximum performance ("Simple solutions over clever ones")
+  // We fetch top 3 for each specific query.
+  const searchPromises = searchQueries.map(query => vectorStore.search(query, 3));
+  const resultsArray = await Promise.all(searchPromises);
+
+  // 4. Flatten the array of arrays into a single array of products
+  const allRetrievedProducts = resultsArray.flat();
+
+  // 5. Deduplicate results based on product_id
+  const uniqueProductsMap = new Map<number, ProposalesProduct>();
+  for (const product of allRetrievedProducts) {
+      if (!uniqueProductsMap.has(product.product_id)) {
+          uniqueProductsMap.set(product.product_id, product);
+      }
+  }
+
+  const curatedCatalog = Array.from(uniqueProductsMap.values());
+  
+  console.log(`✅ Retrieved and deduplicated ${curatedCatalog.length} unique products for the catalog.`);
+  console.log('--- 🏁 retrieveProducts Completed ---\n');
+
+  return curatedCatalog;
+}
+
+/**
+ * Step 3 in our agent pipeline: "Plan".
+ * Uses the LLM to build a logical plan (array of actions) based on
+ * the RFP, the structured requirements, and the products retrieved in Step 2.
+ */
+async function generateProposalPlan(
+  rfpText: string,
+  requirements: ExtractedRequirements,
+  catalog: ProposalesProduct[]
+): Promise<ProposalPlan> {
+  console.log('\n--- 🚀 Starting generateProposalPlan ---');
+
+  const systemPrompt = `You are an elite event planner for a premium hotel. Your task is to generate a comprehensive, professional proposal plan.
+  
+  RULES:
+  1. You must output a structured plan using the provided JSON schema.
+  2. You have been provided with a "Curated Catalog" of products. You MAY ONLY USE products from this catalog.
+  3. If you decide to add a product from the catalog, you MUST use the exact 'product_id' and 'variation_id' provided.
+  4. Build the proposal logically. Start with a warm 'add_custom_text' welcome message. Then logically group the required products. End with a polite closing text.
+  5. For flat-fee items (like a single room rental), the quantity should usually be 1. For per-person items (like a lunch package), the quantity should match the expected guest count.
+  6. The 'justification' field is for your internal reasoning. Explain *why* you chose this product for this client based on their request.
+  
+  Today's date is ${new Date().toISOString().split('T')[0]}.`;
+
+  // We feed the LLM exactly what it needs: The raw intent, the parsed intent, and the available tools (products).
+  const userPrompt = `--- ORIGINAL RFP ---
+  ${rfpText}
+  
+  --- EXTRACTED REQUIREMENTS ---
+  ${JSON.stringify(requirements, null, 2)}
+  
+  --- CURATED CATALOG (ONLY USE THESE PRODUCTS) ---
+  ${JSON.stringify(catalog.map(p => ({
+    product_id: p.product_id,
+    variation_id: p.variation_id,
+    name: p.title.en,
+    description: p.description?.en || ''
+  })), null, 2)}
+  
+  Please generate the proposal plan.`;
+
+  console.log('▶️ Calling LLM to generate the proposal plan...');
+
+  try {
+    // THE ULTIMATE OVERRIDE FOR DISCRIMINATED UNIONS
+    // zod-to-json-schema completely fails on z.discriminatedUnion in strict mode.
+    // We must manually define the precise JSON Schema contract for OpenAI.
+    const manualPlanJsonSchema = {
+      type: "object",
+      properties: {
+        title: {
+          type: "string",
+          description: "A professional, catchy title for the entire proposal (e.g., 'Quarterly Board Meeting at Grand Hotel')."
+        },
+        proposedDates: {
+          type: "object",
+          description: "The finalized dates for the proposal based on the RFP.",
+          properties: {
+            start: { type: "string", description: "The proposed start date (ISO 8601). Leave blank if impossible to determine." },
+            end: { type: "string", description: "The proposed end date (ISO 8601). Leave blank if impossible to determine." }
+          },
+          additionalProperties: false
+        },
+        steps: {
+          type: "array",
+          description: "The sequence of blocks that make up the proposal. Order matters.",
+          items: {
+            type: "object",
+            // We use a flat object for the LLM to avoid 'oneOf' confusion,
+            // but force it to pick a specific 'type' enum.
+            properties: {
+              type: { 
+                type: "string", 
+                enum: ["add_product", "add_custom_text"],
+                description: "CRITICAL: You must choose either 'add_product' or 'add_custom_text'."
+              },
+              // Fields for add_product
+              productId: { type: "number", description: "Required if type is 'add_product'." },
+              variationId: { type: "number", description: "Required if type is 'add_product'." },
+              productName: { type: "string", description: "Required if type is 'add_product'." },
+              quantity: { type: "number", description: "Required if type is 'add_product'." },
+              justification: { type: "string", description: "Required if type is 'add_product'." },
+              // Fields for add_custom_text
+              title: { type: "string", description: "Required if type is 'add_custom_text'." },
+              body: { type: "string", description: "Required if type is 'add_custom_text'." }
+            },
+            required: ["type"],
+            additionalProperties: false
+          }
+        }
+      },
+      required: ["title", "proposedDates", "steps"],
+      additionalProperties: false
+    };
+
+    const proposalPlan = await getStructuredResponse(
+      systemPrompt,
+      userPrompt,
+      ProposalPlanSchema,
+      manualPlanJsonSchema
+    );
+
+    console.log('✅ LLM planning successful and validated.');
+    console.log('--- 🏁 generateProposalPlan Completed ---\n');
+    
+    return proposalPlan;
+  } catch (error) {
+    console.error('❌ generateProposalPlan failed.');
+    throw error;
+  }
+}
+
+// We expose our service as an object of functions for easy mocking and testing.
 export const ProposalAgentService = {
   extractRequirements,
+  retrieveProducts,
+  generateProposalPlan,
 };

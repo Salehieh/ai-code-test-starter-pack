@@ -8,7 +8,7 @@ const openai = new OpenAI({
 });
 
 /**
- * Skapar en embedding (vektorrepresentation) för en given textsträng.
+ * Creates an embedding (vector representation) for a given text string.
  */
 export async function createEmbedding(text: string): Promise<number[]> {
   try {
@@ -29,8 +29,8 @@ export async function createEmbedding(text: string): Promise<number[]> {
 }
 
 /**
- * Anropar OpenAI API med ett Zod-schema definierat som ett "Tool",
- * vilket tvingar modellen att svara med JSON som matchar schemat.
+ * Calls the OpenAI API with a Zod schema defined as a "Tool",
+ * forcing the model to respond with JSON that matches the schema.
  */
 type JsonSchemaObject = { [key: string]: any };
 
@@ -51,7 +51,7 @@ export async function getStructuredResponse<T extends z.ZodTypeAny>(
     }
 
     if (!parameters || parameters.type !== 'object') {
-      throw new Error("Kunde inte generera en giltig schema-definition (måste vara typen 'object').");
+      throw new Error("Failed to generate a valid schema definition (must be of type 'object').");
     }
 
     const requestPayload = {
@@ -78,13 +78,13 @@ export async function getStructuredResponse<T extends z.ZodTypeAny>(
     const message = response.choices[0].message;
 
     if (!message.tool_calls) {
-      throw new Error("Modellen misslyckades med att anropa det nödvändiga verktyget.");
+      throw new Error("The model failed to call the required tool.");
     }
 
     const toolCall = message.tool_calls[0];
 
     if (toolCall.type !== 'function') {
-        throw new Error(`Förväntade ett 'function' tool call, men fick '${toolCall.type}'.`);
+        throw new Error(`Expected a 'function' tool call, but received '${toolCall.type}'.`);
     }
 
     const rawJson = toolCall.function.arguments;
@@ -94,7 +94,7 @@ export async function getStructuredResponse<T extends z.ZodTypeAny>(
       parsed = JSON.parse(rawJson);
     } catch (parseError) {
        console.error('❌ Failed to parse JSON from LLM:', rawJson);
-       throw new Error("Kunde inte parsa LLM-svaret som JSON.");
+       throw new Error("Could not parse the LLM response as JSON.");
     }
 
     return schema.parse(parsed);

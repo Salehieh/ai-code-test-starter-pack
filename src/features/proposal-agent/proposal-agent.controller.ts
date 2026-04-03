@@ -28,10 +28,30 @@ export async function handleAgentRequest(req: Request, res: Response, next: Next
     const extractedRequirements = await ProposalAgentService.extractRequirements(rfpText);
     console.log('✅ "Extract" step completed.');
 
-    // Right now we just return the extracted data to verify that it works.
+    // === STEP 2: RETRIEVE ===
+    console.log('▶️ Starting "Retrieve" step...');
+    const retrievedProducts = await ProposalAgentService.retrieveProducts(extractedRequirements, vectorStore);
+    console.log('✅ "Retrieve" step completed.');
+
+    // === STEP 3: PLAN ===
+    console.log('▶️ Starting "Plan" step...');
+    const proposalPlan = await ProposalAgentService.generateProposalPlan(
+      rfpText,
+      extractedRequirements,
+      retrievedProducts
+    );
+    console.log('✅ "Plan" step completed.');
+
+    console.log('--- 🏁 Agent Pipeline Finished ---');
+
+    // Return the full plan to verify it works.
     res.status(200).json({
-      message: "Extraction successful!",
-      data: extractedRequirements,
+      message: "Pipeline completed through step 3!",
+      data: {
+        extractedRequirements,
+        curatedCatalog: retrievedProducts,
+        proposalPlan
+      },
     });
 
   } catch (error) {

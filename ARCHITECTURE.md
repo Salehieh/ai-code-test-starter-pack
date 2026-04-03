@@ -1,14 +1,25 @@
 ### **ACTUAL ARCHITECTURE.md** ###
 
-* I vår ARCHITECTURE.md kommer vi kort att nämna de andra alternativen och varför vi valde bort dem.
-
-Exempeltext: "För datakontrakt valdes en modulär, co-located strategi framför en central 'types'-fil för att maximera kohesion och stödja långsiktig underhållsbarhet. För interaktion med Proposales API valdes en klass-baserad SDK för dess explicita beroendehantering och inkapsling, i enlighet med principerna om minimala, rena abstraktioner."
+THINGS TO ADD LATER ON (~backlog):
 
 
+***
+
+* Maybe make it easier for people to add their "personal touches" to counteract the tonal sterility of AI-generated text.
+
+
+***
+
+-------------
 
 
 
-* API Client Strategy: För interaktion med Proposales API har vi auto-genererat TypeScript-typer direkt från deras OpenAPI-specifikation med openapi-typescript. Detta garanterar fullständig typsäkerhet under utveckling. För detta uppdrag har vi medvetet valt bort runtime-validering (t.ex. med Zod) av API-svaren för att prioritera och fokusera valideringsarbetet på de mer oförutsägbara LLM-utdata, där robusthet genom kontrakt ger störst värde.
+
+* In our ARCHITECTURE.md, we briefly mention the alternative approaches considered and why they were rejected.
+
+Example text: "For data contracts, a modular, co-located strategy was chosen over a central 'types' file to maximize cohesion and support long-term maintainability. For interaction with the Proposales API, a class-based SDK was chosen for its explicit dependency management and encapsulation, in accordance with the principles of minimal, clean abstractions."
+
+* API Client Strategy: For interaction with the Proposales API, we auto-generated TypeScript types directly from their OpenAPI specification using openapi-typescript. This guarantees complete type safety during development. For this assignment, we deliberately omitted runtime validation (e.g., with Zod) of the API responses to prioritize and focus the validation effort on the more unpredictable LLM outputs, where robustness by contract provides the most value.
 
 Under "Retrieval Strategy"
 Custom In-Memory Vector Store: To adhere to the principle of "minimal abstractions" and demonstrate a deep understanding of the underlying mechanics, a custom in-memory VectorStore class was implemented from scratch. This approach avoids heavy external dependencies like LangChain/LlamaIndex and provides complete control over the embedding and search logic.
@@ -17,7 +28,7 @@ Decoupled Ingestion Pipeline: To ensure "long-term maintainability" and high per
 
 "Cold Start" Optimization: The application solves the "cold start" problem by loading the pre-built index directly into memory upon server startup. This makes the retrieval service instantly available with minimal latency and without any runtime dependencies on external APIs, maximizing system robustness and reliability.
 
-* + om cold starts/ingestion: "För detta kodtest valdes en manuell ingestion-process för att prioritera kärnlogiken. I en produktionsmiljö är dock den självklara och överlägsna strategin att använda Proposales befintliga webhook-infrastruktur. En dedikerad, asynkron endpoint (/api/webhooks/content-updated) skulle prenumerera på händelser för skapande och uppdatering av innehåll. Detta skulle möjliggöra nästan omedelbara, granulära uppdateringar av vårt vektorindex, vilket garanterar maximal datafärskhet på det mest effektiva och resurssnåla sättet. Denna händelsestyrda arkitektur är att föredra framför mindre precisa metoder som periodisk polling eller batch-jobb." PLUS cron batch-jobb. 
+* Regarding cold starts/ingestion: "For this code test, a manual ingestion process was chosen to prioritize the core logic. In a production environment, however, the obvious and superior strategy is to leverage Proposales' existing webhook infrastructure. A dedicated, asynchronous endpoint (/api/webhooks/content-updated) would subscribe to events for content creation and updates. This would enable near-instantaneous, granular updates of our vector index, guaranteeing maximum data freshness in the most efficient and resource-friendly manner. This event-driven architecture is preferable to less precise methods like periodic polling or batch jobs." PLUS cron batch-jobs.
 
 Embedding Strategy: The text-embedding-3-small model was chosen for its excellent balance of performance, cost, and vector dimensionality. For each product, a semantically rich text document is created ("Product: {title}\nDescription: {description}") to provide the model with maximum context for generating a high-quality embedding.
 
@@ -31,15 +42,15 @@ Manual Index Refresh: The index is currently refreshed by manually running the n
 
 
 
-Guld-Paragraf 1: Model & Cost Routing (Lägg till under "Model Selection" eller "Production Considerations")
+Golden Paragraph 1: Model & Cost Routing (Add under "Model Selection" or "Production Considerations")
 
-Text att lägga till:
+Text to add:
 
 Pragmatic Model & Cost Routing:
 While a powerful model like GPT-4o is used for its superior reasoning in this implementation, a production architecture would employ a model routing strategy. A smaller, faster, and cheaper model (e.g., GPT-3.5-Turbo or a fine-tuned open-source model) would handle a majority of simple requests (like the "Simple" RFP). A classifier prompt or a simple heuristic would first assess the complexity of the incoming RFP. Only the most complex requests (like the "Complex" wedding RFP) would be escalated to the more expensive, high-reasoning model. This layered approach drastically optimizes for both latency and operational cost without significantly compromising on quality for the most common use cases.
-Guld-Paragraf 2: AI-Specific Security (Skapa en ny sektion för detta)
+Golden Paragraph 2: AI-Specific Security (Create a new section for this)
 
-Text att lägga till:
+Text to add:
 
 Security: Building a Defensible AI System
 Beyond standard API security, this system is designed with AI-specific threats in mind.
@@ -47,8 +58,8 @@ Beyond standard API security, this system is designed with AI-specific threats i
 Input/Output Guardrails: All user-provided input (the RFP) and all LLM-generated output are treated as untrusted. The strict, multi-step pipeline acts as a natural defense. For example, the Assemble step is 100% deterministic code, meaning an LLM cannot generate arbitrary API calls to Proposales. It can only suggest which pre-validated products to include in a plan.
 
 Prompt Injection Mitigation: By decomposing the task into multiple steps with highly-structured inputs (Zod-validated JSON), we significantly reduce the attack surface for prompt injection. Instead of injecting malicious instructions into a single, large text prompt, an attacker would need to bypass multiple, purpose-built prompts and structured data validations. In production, this would be further hardened by implementing input sanitization and output analysis to detect and neutralize adversarial instructions.
-Guld-Paragraf 3: Advanced Agentic Architecture: The "Tool-Using" Agent (Uppgradera din "Agent Architecture"-sektion)
-Detta tar din beskrivning av agenten från "en pipeline" till en "en tänkande entitet som använder verktyg", vilket är state-of-the-art.
+Golden Paragraph 3: Advanced Agentic Architecture: The "Tool-Using" Agent (Upgrade your "Agent Architecture" section)
+This elevates the description of the agent from a mere "pipeline" to a "thinking entity that uses tools", representing the state-of-the-art.
 
 
 Core Philosophy: A Production-Ready, Tool-Using Agent
@@ -62,7 +73,7 @@ The agent's primary job is not to generate the final output directly, but to gen
 
 
 **Pragmatic Boundary Enforcement (The `zod-to-json-schema` trade-off):**
-During development, it became clear that relying on abstraction libraries like `zod-to-json-schema` to translate complex Zod contracts into OpenAI's strict JSON Schema format was brittle and prone to silent failures. In accordance with the philosophy of "Enkla lösningar över smarta" (Simple solutions over clever ones) and to guarantee absolute control over the LLM instructions, the architecture intentionally bypasses this translation layer for complex schemas. 
+During development, it became clear that relying on abstraction libraries like `zod-to-json-schema` to translate complex Zod contracts into OpenAI's strict JSON Schema format was brittle and prone to silent failures. In accordance with the philosophy of "Simple solutions over clever ones" and to guarantee absolute control over the LLM instructions, the architecture intentionally bypasses this translation layer for complex schemas. 
 
 Instead, we employ a "double boundary":
 *   **Outbound (Deterministic):** A hand-crafted, hardcoded JSON Schema is passed directly to OpenAI's tool API. This guarantees the LLM receives unbroken, highly optimized instructions for the required data shape.
@@ -137,7 +148,7 @@ To ensure system integrity, `zod` schemas are used to validate:
 2.  **All data received from the OpenAI API.** This is a critical step in building a reliable AI system. By validating the structure of the LLM response, we ensure that the rest of the system always operates on predictable and type-safe data, drastically reducing the risk of unexpected errors.
 
 **Pragmatic Boundary Enforcement (The `zod-to-json-schema` trade-off):**
-During development, it became clear that relying on abstraction libraries like `zod-to-json-schema` to translate complex Zod contracts into OpenAI's strict JSON Schema format was brittle and prone to silent failures. In accordance with the philosophy of "Enkla lösningar över smarta" (Simple solutions over clever ones) and to guarantee absolute control over the LLM instructions, the architecture intentionally bypasses this translation layer for complex schemas. 
+During development, it became clear that relying on abstraction libraries like `zod-to-json-schema` to translate complex Zod contracts into OpenAI's strict JSON Schema format was brittle and prone to silent failures. In accordance with the philosophy of "Simple solutions over clever ones" and to guarantee absolute control over the LLM instructions, the architecture intentionally bypasses this translation layer for complex schemas. 
 
 Instead, we employ a "double boundary":
 *   **Outbound (Deterministic):** A hand-crafted, hardcoded JSON Schema is passed directly to OpenAI's tool API. This guarantees the LLM receives unbroken, highly optimized instructions for the required data shape.
