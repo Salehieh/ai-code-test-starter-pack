@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { ValidationError } from '../../core/errors';
 import { ProposalAgentService } from './proposal-agent.service'; // Import our new service
+import { EvaluationService } from '../evaluation/evaluation.service'; // Import our QA service
 import { VectorStore } from '../../core/vector-store';
 import { ProposalesClient } from '../../core/proposales-client/proposales-client';
 
@@ -56,6 +57,11 @@ export async function handleAgentRequest(req: Request, res: Response, next: Next
     const finalResult = await proposalesClient.createProposal(apiPayload);
     console.log(`✅ Draft Proposal Created: ${finalResult.proposal.url}`);
 
+    // === STEP 5: EVALUATE (Quality Assurance) ===
+    console.log('▶️ Starting "Evaluate" step...');
+    const scorecard = await EvaluationService.evaluateProposal(rfpText, extractedRequirements, proposalPlan);
+    console.log(`✅ "Evaluate" step completed. Score: ${scorecard.finalScore}/100`);
+
     console.log('--- 🏁 Agent Pipeline Finished ---');
 
     // Return the final result to the client!
@@ -64,7 +70,8 @@ export async function handleAgentRequest(req: Request, res: Response, next: Next
       data: {
         proposalUrl: finalResult.proposal.url,
         proposalUuid: finalResult.proposal.uuid,
-        debugPlan: proposalPlan // Returning the plan for debugging/visibility
+        evaluation: scorecard, // Returning the scorecard for the frontend
+        debugPlan: proposalPlan 
       },
     });
 
