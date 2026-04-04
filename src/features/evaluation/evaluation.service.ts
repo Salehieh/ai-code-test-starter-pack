@@ -37,7 +37,8 @@ export async function evaluateProposal(
   1. You MUST be highly critical. Do not give a 10/10 unless it is perfect.
   2. You MUST write your 'reasoning' first, thinking step-by-step about what was requested vs what was delivered.
   3. If the plan misses ANY specific request (like a dietary requirement or specific equipment), list it in 'missedRequirements'.
-  4. 'isApproved' MUST be false if there are any missed requirements or if the final score is below 80.`;
+  4. PREMIUM BRAND ALIGNMENT: Grade the 'toneScore' strictly on whether the proposal sounds luxurious, bespoke, and professional. Penalize robotic or cheap transactional language.
+  5. 'isApproved' MUST be false if there are any missed requirements or if the final score is below 80.`;
 
   const userPrompt = `--- ORIGINAL RFP FROM CLIENT ---
   ${rfpText}

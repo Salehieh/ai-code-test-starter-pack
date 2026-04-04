@@ -121,11 +121,20 @@
                 const result = await response.json();
                 const data = result.data;
 
-                // 1. Update Proposal Link
-                document.getElementById('proposal-url').href = data.proposalUrl;
+                const eval = data.evaluation;
+
+                // 1. Update Proposal Link (Human-in-the-Loop Guardrail)
+                const proposalUrlEl = document.getElementById('proposal-url');
+                proposalUrlEl.href = data.proposalUrl;
+                if (eval.isApproved) {
+                    proposalUrlEl.textContent = 'Review & Send to Client →';
+                    proposalUrlEl.style.backgroundColor = '#10b981'; // Green
+                } else {
+                    proposalUrlEl.textContent = 'Draft Requires Manual Revision →';
+                    proposalUrlEl.style.backgroundColor = '#f59e0b'; // Warning Orange
+                }
 
                 // 2. Update Evaluation Scorecard
-                const eval = data.evaluation;
                 const evalCard = document.getElementById('evaluation-card');
                 const scoreCircle = document.getElementById('score-circle');
                 const statusBadge = document.getElementById('status-badge');
