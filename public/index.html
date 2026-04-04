@@ -33,6 +33,10 @@
         .missed-reqs h4 { margin-top: 0; color: #b91c1c; }
         .missed-reqs ul { margin-bottom: 0; padding-left: 20px; }
         
+        .error-card { border: 1px solid #ef4444; border-radius: 8px; padding: 24px; margin-bottom: 20px; background-color: #fef2f2; color: #b91c1c; display: none; }
+        .error-card h3 { margin-top: 0; color: #991b1b; border-bottom: 1px solid #fca5a5; padding-bottom: 10px; }
+        .error-details { font-family: monospace; background: #fee2e2; padding: 10px; border-radius: 4px; margin-top: 10px; white-space: pre-wrap; word-break: break-word; }
+        
         pre { background-color: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 6px; overflow-x: auto; font-size: 13px; }
     </style>
 </head>
@@ -47,6 +51,12 @@
         <button type="submit" id="submit-btn">Generate & Evaluate Proposal</button>
     </form>
     
+    <div id="error-container" class="error-card">
+        <h3>❌ Pipeline Execution Failed</h3>
+        <p>The agent encountered an error while processing your request. This could be due to an invalid API key, a network timeout, or an unexpected LLM hallucination.</p>
+        <div id="error-message" class="error-details"></div>
+    </div>
+
     <div id="result-container">
         <h2>System Output</h2>
         
@@ -92,6 +102,7 @@
             submitBtn.disabled = true;
             submitBtn.textContent = 'Agent Pipeline Running (Takes ~10s)...';
             resultContainer.style.display = 'none';
+            document.getElementById('error-container').style.display = 'none';
 
             const rfpText = document.getElementById('rfpText').value;
 
@@ -103,7 +114,8 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
                 }
 
                 const result = await response.json();
@@ -146,7 +158,9 @@
                 resultContainer.style.display = 'block';
 
             } catch (error) {
-                alert(`An error occurred: ${error.message}\nMake sure the server is running and .env is configured.`);
+                // Graceful UI Error Handling
+                document.getElementById('error-message').textContent = error.message;
+                document.getElementById('error-container').style.display = 'block';
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Generate & Evaluate Proposal';
