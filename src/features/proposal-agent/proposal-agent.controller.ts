@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { ValidationError } from '../../core/errors';
+import { ValidationError, ApiError, ExternalServiceError } from '../../core/errors';
 import { ProposalAgentService } from './proposal-agent.service'; // Import our new service
 import { EvaluationService } from '../evaluation/evaluation.service'; // Import our QA service
 import { VectorStore } from '../../core/vector-store';
@@ -21,7 +21,7 @@ export async function handleAgentRequest(req: Request, res: Response, next: Next
     // Dependency Injection: Get the loaded VectorStore from Express locals
     const vectorStore = req.app.locals.vectorStore as VectorStore;
     if (!vectorStore) {
-        throw new Error("Critical Server Error: VectorStore is not initialized.");
+        throw new ApiError("INTERNAL_CONFIG_ERROR", 500, "Critical Server Error: VectorStore is not initialized.");
     }
 
     // Call the first step in our agent pipeline
@@ -47,14 +47,22 @@ export async function handleAgentRequest(req: Request, res: Response, next: Next
     // === STEP 4: ASSEMBLE & EXECUTE ===
     console.log('▶️ Starting "Assemble" step...');
     const companyId = parseInt(process.env.PROPOSALES_COMPANY_ID || '0', 10);
-    if (!companyId) throw new Error("Critical Configuration Error: Missing PROPOSALES_COMPANY_ID");
+    if (!companyId) {
+      throw new ApiError("INTERNAL_CONFIG_ERROR", 500, "Critical Configuration Error: Missing PROPOSALES_COMPANY_ID in environment variables.");
+    }
     
     const apiPayload = ProposalAgentService.assembleProposal(proposalPlan, companyId);
     console.log('✅ "Assemble" step completed.');
 
     console.log('▶️ Sending to Proposales API...');
-    const proposalesClient = new ProposalesClient(process.env.PROPOSALES_API_KEY);
-    const finalResult = await proposalesClient.createProposal(apiPayload);
+    let finalResult;
+    try {
+      const proposalesClient = new ProposalesClient(process.env.PROPOSALES_API_KEY);
+      finalResult = await proposalesClient.createProposal(apiPayload);
+    } catch (error: any) {
+      console.error('❌ Failed to create proposal in Proposales API:', error.message);
+      throw new ExternalServiceError('PROPOSALES_API_ERROR', `Failed to create proposal: ${error.message}`);
+    }
     console.log(`✅ Draft Proposal Created: ${finalResult.proposal.url}`);
 
     // === STEP 5: EVALUATE (Quality Assurance) ===
@@ -76,6 +84,7 @@ export async function handleAgentRequest(req: Request, res: Response, next: Next
     });
 
   } catch (error) {
+    // Pass the error to our centralized Express error handler in index.ts
     next(error);
   }
 }
