@@ -212,7 +212,7 @@ async function generateProposalPlan(
   5. CRITICAL MATH: If specific quantities are requested (e.g., '40 hotel rooms' or '120 guests'), you MUST ensure the sum of your 'quantity' fields perfectly matches the request.
   6. CRITICAL OMISSIONS: If the client requests something that is NOT in the Curated Catalog (e.g., specific dietary meals, spa access, florals), you MUST add an 'add_custom_text' block explicitly acknowledging that specific request and assuring the client that the hotel team will arrange it. DO NOT IGNORE ANY REQUESTS.
   7. PREMIUM BRAND TONE: Use a luxurious, highly professional "tone of voice". Use words like 'bespoke', 'curated', and 'exclusive'. NEVER use cheap, robotic, or overly transactional language.
-  8. CONVERSION DRIVER: You MUST end the proposal with an 'add_custom_text' block titled "Next Steps & Validity". State that this bespoke proposal is valid for 14 days from today's date, and warmly invite them to confirm.
+  8. CONVERSION DRIVER: You MUST include an 'add_custom_text' block titled "Next Steps & Validity". State that this bespoke proposal is valid for 14 days from today's date, and warmly invite them to confirm.
   9. The 'justification' field is for your internal reasoning. Explain *why* you chose this product for this client based on their request.
   
   Today's date is ${new Date().toISOString().split('T')[0]}.`;
@@ -321,12 +321,28 @@ function assembleProposal(plan: ProposalPlan, companyId: number): CreateProposal
       descriptionMd += `**Proposed Dates:** ${plan.proposedDates.start || 'TBD'} to ${plan.proposedDates.end || 'TBD'}\n\n`;
   }
 
+  // Calculate validity date (14 days from today) for the Conversion Driver
+  const validityDate = new Date();
+  validityDate.setDate(validityDate.getDate() + 14);
+  const validityDateString = validityDate.toISOString().split('T')[0];
+
   // Iterate through the steps and map them to the platform's constraints.
   // Note: Proposales V3 'blocks' array only supports product/video blocks.
   // Therefore, custom text is gracefully combined into the 'description_md' field.
+  let validityText = '';
+
   for (const step of plan.steps) {
       if (step.type === 'add_custom_text') {
-          descriptionMd += `# ${step.title}\n${step.body}\n\n`;
+          // If the AI generated the validity block, we inject the dynamic date and save it for the end
+          let bodyText = step.body;
+          if (step.title.toLowerCase().includes('validity')) {
+              if (bodyText.includes('[Date]')) {
+                  bodyText = bodyText.replace('[Date]', validityDateString);
+              }
+              validityText = `# ${step.title}\n${bodyText}\n\n`;
+          } else {
+              descriptionMd += `# ${step.title}\n${bodyText}\n\n`;
+          }
       } else if (step.type === 'add_product') {
           blocks.push({
               content_id: step.variationId, // CRITICAL: The API requires variation_id here, not product_id
@@ -334,6 +350,11 @@ function assembleProposal(plan: ProposalPlan, companyId: number): CreateProposal
               quantity: step.quantity // Passed as additional block data
           });
       }
+  }
+
+  // Ensure the validity text is ALWAYS at the very bottom of the description
+  if (validityText) {
+      descriptionMd += validityText;
   }
 
   const payload: CreateProposalPayload = {
