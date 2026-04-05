@@ -1,4 +1,4 @@
-# Proposales AI Engineer - Code Challenge
+# Proposales AI Engineer - Technical Case
 **By:** Samuel Salehieh
 
 ---

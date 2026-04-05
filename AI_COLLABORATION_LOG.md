@@ -9,7 +9,7 @@ Instead of immediately asking the AI to write code, I started by feeding it the 
 
 **The God-prompt:**
 
-***Please act as my senior tech-mentor and strategic partner.*** ***Your sole goal is to help me deliver an exceptional solution to a coding test.*** Here is all the context you need.
+***Please act as my senior tech-mentor and strategic partner.*** ***Your sole goal is to help me deliver an exceptional solution to a Technical Case.*** Here is all the context you need.
 
 **1. MY PROFILE (The Candidate)**
 *   **Who:** Samuel Salehieh, AI-native Architect.
@@ -26,7 +26,7 @@ Instead of immediately asking the AI to write code, I started by feeding it the 
     *   "Test-driven development" and high code quality.
     *   "Modular code" with internal libraries (our `src/core` folder simulates this).
 
-**3. THE MISSION (Goal of the Code Test)**
+**3. THE MISSION (Goal of the Technical Case)**
 *   **Primary Goal:** Deliver a "Full-Stack Manifest"—not just code. The solution must be a robust, testable, and well-documented microservice that proves Lead capacity.
 *   **Overarching Goal:** The delivery must be exceptional in thought, architecture, and professionalism.
 
@@ -36,7 +36,7 @@ Instead of immediately asking the AI to write code, I started by feeding it the 
 *   **Test the cage, not the dragon:** Isolate the non-deterministic AI layer (`llm-utils.ts`) and mock it in tests to create a 100% deterministic and reliable test suite.
 *   **The finishing touches, not over-engineering:** Focus on solving the core task perfectly. Mention production aspects like advanced security, GDPR handling, and scalability in `ARCHITECTURE.md` as conscious "next steps", but DO NOT implement them in the code.
 
-**My task for you now is, based on the code test assignment I will paste shortly, to act as my sparring partner to create the best possible implementation plan that follows these rules.**
+**My task for you now is, based on the Technical Case assignment I will paste shortly, to act as my sparring partner to create the best possible implementation plan that follows these rules.**
 
 
 
@@ -55,7 +55,7 @@ Instead of immediately asking the AI to write code, I started by feeding it the 
 To prevent the AI from blindly generating the first (and often worst) solution that came to its "mind", I enforced a strict brainstorming protocol before any implementation step.
 
 **My Prompt:**
-> "Är det här den absolut bästa grunden? Har vi missat något? Vänligen *kom fram till 3 alternativa planer för vad vi ska tänka på, och väg deras för- och nackdelar mot denna grundplan* -> skapa implementationsplan utifrån denna bekräftade ultimata grundefterforskning."
+> "Is this the absolute best foundation? Have we missed anything? Please *come up with 3 alternative plans for what we should consider, and weigh their pros and cons against this baseline plan* -> create an implementation plan based on this confirmed, ultimate foundational research."
 
 **The Result:** By forcing the AI to argue against itself and present alternatives, we arrived at much more robust solutions, such as choosing Dependency Injection for the VectorStore to make testing easier.
 
@@ -66,7 +66,7 @@ To prevent the AI from blindly generating the first (and often worst) solution t
 During manual E2E testing with a complex RFP, I noticed the Extraction step was being too "greedy" and extracting abstract concepts, which poisoned the downstream Vector Search.
 
 **My Prompt:**
-> "vad är ens 3 tracks...? inte bevis på 'för greedy' funktion som extractar för många requirements? hmmm?"
+> "what even is '3 tracks'...? isn't this proof of a 'too greedy' function that extracts too many requirements? hmmm?"
 
 **The Collaboration:**
 I fed the AI the raw JSON output from the pipeline trace, pointing out that "3 parallel tracks" is an abstract concept, not a tangible product. 
@@ -120,6 +120,6 @@ Throughout this project, I used AI (Almost exclusively Gemini 3.1 Pro within Cur
 
 **Debugging.**
 
-**writing up ARCHITECTURE.md as we go; documenting our reasoning and trade-offs.**
+**Writing up ARCHITECTURE.md as we go; documenting our reasoning and trade-offs.**
 
 I thus systematically utilized AI to accelerate the process, and maximize the quality of the output. By maintaining strict directive control over the AI; never trusting it; by forcing the AI to seriously evaluate alternatives and weigh their pros and cons against our "north star"; our God-prompt, and our current codebase, I ensure the final product is built with strict engineering rigor.
