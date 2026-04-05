@@ -1,244 +1,277 @@
-### **ACTUAL ARCHITECTURE.md** ###
+**META:
 
-THINGS TO ADD LATER ON (~backlog):
+THIS DOCUMENT SHOULD CONTAIN THESE POINTS:
 
 
-***
+2. Architecture document (in your README or a separate doc) covering:
+- System diagram showing data flow between components
+- Model selection rationale — why this model for this step?
+- Retrieval strategy — embedding model, indexing approach, similarity metric, ingestion design
+- Evaluation methodology — what dimensions, how scored, why these dimensions
+- Production considerations — what would you change for 1,000x scale? Think about: cost routing, caching, async processing, observability, latency budgets
+- Security considerations — prompt injection, input validation, guardrails
+- Honest trade-offs — what did you cut? What would you do differently with more time?
 
-* Maybe make it easier for people to add their "personal touches" to counteract the tonal sterility of AI-generated text.
 
 
-***
 
--------------
+3.
 
+What We Care About
+We evaluate depth of AI engineering thinking over polish. Specifically:
+- Retrieval design — Did you build a real semantic search layer, or stuff everything into context? Did you think about ingestion, not just retrieval?
+- Agentic architecture — Is your pipeline multi-step with clear decomposition, or a single prompt? How do you handle failures and validation?
+- Evaluation rigor — Did you build automated quality measurement, or just eyeball it?
+- Production awareness — Do you reason about cost, latency, observability, security, and scale?
+- Code quality and communication — Is your code well-structured? Is your architecture document clear and honest?
 
 
 
-* In our ARCHITECTURE.md, we briefly mention the alternative approaches considered and why they were rejected.
 
-Example text: "For data contracts, a modular, co-located strategy was chosen over a central 'types' file to maximize cohesion and support long-term maintainability. For interaction with the Proposales API, a class-based SDK was chosen for its explicit dependency management and encapsulation, in accordance with the principles of minimal, clean abstractions."
++++also: How would I make this more accurate in the future (70/100, etc.)
 
-* API Client Strategy: For interaction with the Proposales API, we auto-generated TypeScript types directly from their OpenAPI specification using openapi-typescript. This guarantees complete type safety during development. For this assignment, we deliberately omitted runtime validation (e.g., with Zod) of the API responses to prioritize and focus the validation effort on the more unpredictable LLM outputs, where robustness by contract provides the most value.
+**
 
-Under "Retrieval Strategy"
-Custom In-Memory Vector Store: To adhere to the principle of "minimal abstractions" and demonstrate a deep understanding of the underlying mechanics, a custom in-memory VectorStore class was implemented from scratch. This approach avoids heavy external dependencies like LangChain/LlamaIndex and provides complete control over the embedding and search logic.
 
-Decoupled Ingestion Pipeline: To ensure "long-term maintainability" and high performance, the computationally expensive ingestion process (where embeddings are generated) is fully decoupled from the application's runtime. A dedicated script (scripts/ingest.ts) is used to build a search index, which is then serialized to a file (vector-store.json). This embodies the "simple solutions over smart ones" philosophy.
 
-"Cold Start" Optimization: The application solves the "cold start" problem by loading the pre-built index directly into memory upon server startup. This makes the retrieval service instantly available with minimal latency and without any runtime dependencies on external APIs, maximizing system robustness and reliability.
+# Architectural Decisions & Engineering Philosophy
 
-* Regarding cold starts/ingestion: "For this code test, a manual ingestion process was chosen to prioritize the core logic. In a production environment, however, the obvious and superior strategy is to leverage Proposales' existing webhook infrastructure. A dedicated, asynchronous endpoint (/api/webhooks/content-updated) would subscribe to events for content creation and updates. This would enable near-instantaneous, granular updates of our vector index, guaranteeing maximum data freshness in the most efficient and resource-friendly manner. This event-driven architecture is preferable to less precise methods like periodic polling or batch jobs." PLUS cron batch-jobs.
+This document outlines the architectural choices, trade-offs, and underlying philosophy for the Proposales AI Agent. The goal is to demonstrate a mindset geared towards building **production-grade, defensible AI systems**, treating AI not as magic, but as a rigorous engineering discipline.
 
-Embedding Strategy: The text-embedding-3-small model was chosen for its excellent balance of performance, cost, and vector dimensionality. For each product, a semantically rich text document is created ("Product: {title}\nDescription: {description}") to provide the model with maximum context for generating a high-quality embedding.
+## System Architecture Diagram
 
-Similarity Metric: Cosine similarity is used as the metric to determine the semantic relevance between a user's query and the indexed products. This function (cosineSimilarity) was implemented from scratch to ensure full transparency and control, avoiding hidden "magic."
+```mermaid
+graph TD
+    User[User / Sales Rep] -->|RFP Text| UI[Vanilla JS Dashboard]
+    UI -->|POST /api/agent| Controller[Agent Controller]
+    
+    subgraph Agentic Pipeline
+        Controller -->|1| Extract[Extract Requirements<br/>LLM: gpt-4o]
+        Controller -->|2| Retrieve[Hybrid Multi-Query<br/>VectorStore]
+        Controller -->|3| Plan[Generate Plan<br/>LLM: gpt-4o]
+        Controller -->|4| Assemble[Deterministic Assembly<br/>TypeScript]
+    end
+    
+    Assemble -->|Create Proposal| ProposalesAPI[(Proposales API)]
+    ProposalesAPI -->|Draft URL| Controller
+    
+    Controller -->|5| Evaluate[Quality Assurance<br/>LLM-as-a-judge]
+    Evaluate -->|Scorecard| Controller
+    
+    Controller -->|Pipeline Trace + Scorecard| UI
+```
 
-Under "Honest Trade-offs" or "Production Considerations"
-In-Memory Index: The current VectorStore is in-memory, which is ideal for this exercise due to its speed and simplicity. However, it does not scale horizontally across multiple server instances. For a 1,000x scale production environment, this index would be migrated to a shared, persistent data store such as Redis (with the RediSearch module), PostgreSQL (with the pgvector extension), or a managed vector database like Pinecone.
+## Core Philosophy: AI as an Engineering Discipline
+At the core of this architecture is the belief that LLMs are powerful but inherently non-deterministic and unreliable. Therefore, the surrounding system must be hyper-deterministic, strictly typed, and highly observable. We prioritize **simple solutions over clever ones** and enforce **robustness through strict data contracts**.
 
-Manual Index Refresh: The index is currently refreshed by manually running the npm run db:ingest script. A production-grade system would automate this process, likely triggered by a webhook from Proposales when content is updated, or as a periodic cron job to ensure the index remains fresh without manual intervention.
+---
 
+## Pillar 1: Data Contracts & Retrieval (The Foundation)
 
+### 1. Co-located Data Contracts
+For data contracts, a modular, co-located strategy was chosen over a central `types.ts` file. Schemas (e.g., `proposal-agent.schemas.ts`) live directly alongside the services that use them. This maximizes cohesion, makes the codebase easier to navigate, and supports long-term maintainability as domain contexts grow.
 
+### 2. API Client Strategy & Validation Budget
+For interaction with the Proposales API, a class-based SDK was chosen for its explicit dependency management and encapsulation. 
+*   **The Trade-off:** We auto-generated TypeScript types directly from their OpenAPI specification using `openapi-typescript` to guarantee compile-time safety. However, we deliberately omitted runtime validation (e.g., parsing with Zod) of the incoming Proposales API responses.
+*   **The Reasoning:** In an AI-heavy system, the "validation budget" (both performance and developer time) should be spent where the risk is highest. We trust the deterministic 1st-party API and focus our strict runtime validation entirely on the unpredictable, non-deterministic LLM outputs.
 
-Golden Paragraph 1: Model & Cost Routing (Add under "Model Selection" or "Production Considerations")
+### 3. The "Double Boundary" Validation Strategy ###
 
-Text to add:
+A core value in this design is "Intentional Robustness." We never assume external data is correct, whether from a user or an LLM.
+*   **The Trade-off:** During development, relying on abstraction libraries like `zod-to-json-schema` to translate complex Zod contracts (like discriminated unions) into OpenAI's strict JSON Schema format proved brittle.
+*   **The Solution:** We intentionally bypassed this translation layer. We employ a "double boundary":
+    1.  **Outbound (Deterministic):** A hand-crafted, hardcoded JSON Schema is passed directly to OpenAI's tool API. This guarantees the LLM receives unbroken, highly optimized instructions.
+    2.  **Inbound (Defensive):** The raw JSON string returned by the LLM is then strictly parsed and validated by our `zod` schemas. This isolates the non-deterministic "dragon" in a type-safe "cage."
 
-Pragmatic Model & Cost Routing:
-While a powerful model like GPT-4o is used for its superior reasoning in this implementation, a production architecture would employ a model routing strategy. A smaller, faster, and cheaper model (e.g., GPT-3.5-Turbo or a fine-tuned open-source model) would handle a majority of simple requests (like the "Simple" RFP). A classifier prompt or a simple heuristic would first assess the complexity of the incoming RFP. Only the most complex requests (like the "Complex" wedding RFP) would be escalated to the more expensive, high-reasoning model. This layered approach drastically optimizes for both latency and operational cost without significantly compromising on quality for the most common use cases.
-Golden Paragraph 2: AI-Specific Security (Create a new section for this)
+### 4. Minimal Abstractions: Custom Vector Store
+To adhere to the principle of "minimal abstractions," a custom in-memory `VectorStore` class was implemented from scratch using Cosine Similarity. 
+*   **Why:** This approach avoids heavy, opaque external dependencies like LangChain or LlamaIndex, providing complete, transparent control over the embedding and search logic. 
+*   **Embedding Strategy:** The `text-embedding-3-small` model was chosen for its excellent balance of performance, cost, and vector dimensionality. We deliberately avoided "chunking." Hotel products are atomic units (title + short description). Chunking them would destroy semantic boundaries. Instead, we embed the entire product as a single document (`"Product: {title}\nDescription: {description}"`).
+*   **Production Path:** While in-memory is perfect for this isolated test (solving the "cold start" problem instantly by loading the pre-built `vector-store.json`), a 1000x scale production environment would migrate this to a shared vector database (e.g., pgvector, Pinecone) updated via Proposales webhooks (`/api/webhooks/content-updated`) rather than manual batch ingestion.
 
-Text to add:
+### 5. A Testable Core (Dependency Injection)
+By instantiating the `VectorStore` at the application root (`index.ts`) and passing it down into the services via Express `app.locals` (Dependency Injection), the core logic becomes highly testable. We can easily pass a mock vector store into our integration tests without relying on global singletons or complex mocking libraries.
 
-Security: Building a Defensible AI System
-Beyond standard API security, this system is designed with AI-specific threats in mind.
+---
 
-Input/Output Guardrails: All user-provided input (the RFP) and all LLM-generated output are treated as untrusted. The strict, multi-step pipeline acts as a natural defense. For example, the Assemble step is 100% deterministic code, meaning an LLM cannot generate arbitrary API calls to Proposales. It can only suggest which pre-validated products to include in a plan.
+## Pillar 2: The Agentic Pipeline (The Engine)
 
-Prompt Injection Mitigation: By decomposing the task into multiple steps with highly-structured inputs (Zod-validated JSON), we significantly reduce the attack surface for prompt injection. Instead of injecting malicious instructions into a single, large text prompt, an attacker would need to bypass multiple, purpose-built prompts and structured data validations. In production, this would be further hardened by implementing input sanitization and output analysis to detect and neutralize adversarial instructions.
-Golden Paragraph 3: Advanced Agentic Architecture: The "Tool-Using" Agent (Upgrade your "Agent Architecture" section)
-This elevates the description of the agent from a mere "pipeline" to a "thinking entity that uses tools", representing the state-of-the-art.
+The core logic is built around a multi-step, deterministic pipeline orchestrating non-deterministic AI models. 
 
+### 1. Rejecting the "Mega-Prompt"
+Asking an LLM to read an RFP, search a database, and output a massive, nested JSON payload in one step is a recipe for hallucinations, high latency, and impossible debugging. By decomposing the task (Extract -> Retrieve -> Plan -> Assemble), we isolate complexity and allow for targeted optimization at each step.
 
-Core Philosophy: A Production-Ready, Tool-Using Agent
-My architectural philosophy was to build more than just a pipeline; it's a system designed to reason, plan, and act by using tools. This is achieved by framing each core capability as a "tool" available to the agent:
+### 2. Rejecting the "Autonomous Loop" (Self-Healing Agent)
+We considered an architecture where the agent critiques its own plan and loops until perfect. 
+*   **Why it was rejected:** It violates "Simple solutions over clever ones." Autonomous loops introduce unpredictable latency, unbounded costs, and the "blind leading the blind" problem (an LLM confused enough to write a bad plan is often confused enough to approve it). Our pipeline is strictly linear and predictable.
 
-ProductRetrievalTool: The VectorStore is not just a data source; it's a tool the agent uses to find relevant products.
+### 3. Multi-Query Semantic Search
+Instead of searching the vector store with the entire, noisy RFP text, the `Retrieve` step spawns parallel semantic searches for *each* extracted requirement (e.g., one search for "vegan meals", one for "projector"). This drastically improves retrieval accuracy and creates a highly relevant "Curated Catalog" for the planning step.
 
-ProposalAssemblyTool: The final, deterministic code that calls the Proposales API is a safe, reliable tool for execution.
+### 4. Deterministic Assembly
+The final step before network execution (`assembleProposal`) is 100% deterministic TypeScript. No AI is used to generate the final Proposales API payload. This acts as a firewall, ensuring the LLM cannot invent invalid product IDs or malformed JSON structures that would crash the API.
 
-The agent's primary job is not to generate the final output directly, but to generate a plan that orchestrates the use of these tools in a logical sequence. This "Tool-Using" pattern is fundamental to creating reliable, extensible, and observable AI systems. It allows us to isolate non-determinism (the LLM's planning) from deterministic execution (the tools' actions), which is the cornerstone of treating "AI as an Engineering Discipline."
+### 5. Model Selection Rationale
+*   **Reasoning (Extract, Plan, Evaluate):** `gpt-4o` was selected for all reasoning steps. In a multi-step pipeline where the output of step 1 strictly dictates the success of step 3, instruction-following and complex JSON schema adherence are paramount. Cheaper models (like GPT-3.5) hallucinate schema structures too frequently for a production-grade deterministic assembly.
+*   **Embeddings:** `text-embedding-3-small` was chosen for the VectorStore. It offers the best balance of low latency, high semantic accuracy, and cost-efficiency for short-text product catalogs.
 
+---
 
-**Pragmatic Boundary Enforcement (The `zod-to-json-schema` trade-off):**
-During development, it became clear that relying on abstraction libraries like `zod-to-json-schema` to translate complex Zod contracts into OpenAI's strict JSON Schema format was brittle and prone to silent failures. In accordance with the philosophy of "Simple solutions over clever ones" and to guarantee absolute control over the LLM instructions, the architecture intentionally bypasses this translation layer for complex schemas. 
+## Pillar 3: Quality Assurance & Evaluation (The Guardrails)
 
-Instead, we employ a "double boundary":
-*   **Outbound (Deterministic):** A hand-crafted, hardcoded JSON Schema is passed directly to OpenAI's tool API. This guarantees the LLM receives unbroken, highly optimized instructions for the required data shape.
-*   **Inbound (Defensive):** The raw JSON string returned by the LLM is then strictly parsed and validated by our `zod` schema. 
+To prove the system's reliability, a dedicated `EvaluationService` was implemented as a "first-class citizen," completely decoupled from the generation logic.
 
-This isolates the non-deterministic "dragon" in a type-safe "cage," demonstrating that true robustness often requires shedding unreliable abstractions in favor of explicit, engineered contracts.
+### 1. Asynchronous Evaluation (Latency vs. Accuracy)
+*   **The Trade-off:** We could have placed the evaluation step *before* creating the proposal, blocking the creation if the score was too low.
+*   **The Solution:** LLM calls are slow. Blocking the user for 15+ seconds yields a terrible UX. Instead, we generate the draft immediately and run the evaluation asynchronously. The score is surfaced to the sales manager's dashboard, alerting them to review the draft carefully. This balances UX speed with strict quality observability.
 
-
-
-
-
-
-
-### 7. Domain Boundaries & Future Constraints Modeling
-
-While this architecture successfully demonstrates a semantic RAG pipeline, it intentionally simplifies the complex reality of hotel inventory management to focus on AI orchestration. In a full production environment, the following domain constraints would need to be addressed:
-
-*   **Inventory Rules & Dependencies (The "A La Carte" Assumption):** Currently, the LLM assumes all products in the `vector-store` are independent and freely combinable. In reality, hospitality inventory has strict dependency rules (e.g., a specific AV package might be incompatible with an outdoor terrace space, or a dietary meal might require the purchase of a base banquet package). A production system would require a deterministic Rule Engine that validates the LLM's proposed plan against these hidden inventory constraints before finalizing the proposal.
-*   **Dynamic Pricing & Availability:** The current system does not check real-time availability or dynamic pricing rules (e.g., weekend rates vs. weekday rates). The AI assumes a static catalog. Integrating live availability checks as a mandatory tool call *before* the final Assembly step would be critical to prevent the LLM from proposing fully booked resources.
-*   **Human-in-the-Loop (HITL) & Legal Binding:** In B2B hospitality, a proposal is often a legally binding contract. While this agent autonomously drafts the proposal, a production deployment would require a mandatory "Draft State" hand-off. The AI would assemble the proposal in the Proposales system as a draft, notifying a human sales manager for final review, pricing adjustments (discounts), and explicit approval before it is sent to the client. We do not allow the LLM to autonomously execute financially binding actions.
-
-
-
-
-
-
-### 10. The Agentic Pipeline (Pillar 2)
-
-The core logic of the system is built around a multi-step, deterministic pipeline that orchestrates non-deterministic AI models. This approach was chosen over a single "Mega-Prompt" or an autonomous "AutoGPT-style" loop.
-
-**Why not a single Mega-Prompt?**
-Asking an LLM to read an RFP, search a database, and output a massive, nested JSON payload in one step is a recipe for hallucinations, high latency, and impossible debugging. By decomposing the task, we isolate complexity.
-
-**Why not an Autonomous Loop (Self-Healing Agent)?**
-We considered an architecture where the agent critiques its own plan and loops until perfect. This was rejected. It violates the principle of "Simple solutions over clever ones." Autonomous loops introduce unpredictable latency, unbounded costs, and the "blind leading the blind" problem (an LLM confused enough to write a bad plan is often confused enough to approve it).
-
-Instead, the pipeline is strictly linear:
-1.  **Extract:** A focused LLM call extracts structured data (dates, guests, special requests) from the raw RFP.
-2.  **Retrieve:** We use a Multi-Query Semantic Search strategy. Instead of searching the vector store with the entire RFP, we spawn parallel searches for each extracted requirement (e.g., one search for "vegan meals", one for "projector"). This drastically improves retrieval accuracy over a single, noisy embedding.
-3.  **Plan:** A second LLM call acts as the "Event Planner," selecting items from the retrieved catalog to build a logical sequence of blocks.
-4.  **Assemble:** A 100% deterministic TypeScript function maps the LLM's plan into the exact JSON payload required by the Proposales API. No AI is used here, ensuring complete safety before network execution.
-
-
-
-
-
-### 8. Quality Assurance & Evaluation (Pillar 3)
-
-A core tenet of treating AI as an engineering discipline is establishing rigorous, automated evaluation. To prove the system's reliability, a dedicated `EvaluationService` was implemented as a "first-class citizen" in the architecture, completely decoupled from the generation logic.
-
-**The Hybrid Evaluation Strategy:**
+### 2. The Hybrid Evaluation Strategy
 The service employs a two-pronged approach to grade the generated proposal against the original RFP:
 1.  **Deterministic Heuristics:** Fast, 100% reliable programmatic checks (e.g., "Did the sum of the product quantities match the requested guest count?"). If these fail, the score is mathematically capped, overriding any LLM leniency.
 2.  **LLM-as-a-Judge:** A secondary LLM call acts as a strict Quality Assurance Auditor. It uses Chain-of-Thought prompting (enforced by placing the `reasoning` field first in the Zod schema) to evaluate qualitative dimensions like tone and accuracy, outputting a strict `EvaluationScorecard`.
 
-This asynchronous evaluation loop ensures that sales managers are instantly alerted to LLM hallucinations or omissions via the frontend dashboard *before* a proposal is ever sent to a client.
+---
 
-### 9. Frontend & Orchestration (Pillar 4)
+## Pillar 4: Orchestration & UI (The Delivery)
 
-In alignment with the instruction that "a clean but simple interface... is far more valuable than a polished app," the frontend was intentionally built using vanilla HTML/JS without heavy frameworks like React.
+### 1. Vanilla JS Dashboard & Pipeline Trace
+In strict alignment with the instruction that *"a clean but simple interface... is far more valuable than a polished app,"* the frontend was intentionally built using vanilla HTML/JS without heavy frameworks like React. 
 
-The `AgentController` acts as the central orchestrator, executing the 5-step pipeline linearly:
-`Extract -> Retrieve -> Plan -> Assemble (API Execution) -> Evaluate`
+Instead of a polished end-user app, the UI features a **Pipeline Execution Trace**. It explicitly exposes the extracted requirements, retrieved products, and the raw LLM plan. This fulfills the philosophy that a transparent interface showing *how* the AI thinks is far more valuable than a black box. It acts as a "Sales Dashboard," parsing the API payload to provide immediate, transparent observability into the AI's decision-making process (displaying the Draft Link, the QA Scorecard, and the raw Debug JSON).
 
-The controller aggregates all intermediate states (the drafted URL, the raw debug plan, and the QA scorecard) into a single JSON response. The vanilla JS frontend acts as a "Sales Dashboard," parsing this payload to provide immediate, transparent observability into the AI's decision-making process.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-____________________________________________________________________________________________________________
-
-OLD ARCHITECTURE.MD:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### **Template 3: `ARCHITECTURE.md` (Your Winning Manifest)**
-
-```markdown
-# Architectural Decisions & Rationale
-
-This document outlines the architectural choices and the underlying philosophy for this project. The goal is not just to present a solution, but to demonstrate a mindset geared towards building `production-grade` AI systems.
-
-### 1. Core Philosophy: A Production-Ready Agent Architecture
-My architectural philosophy was to build an **Agent architecture** that is more than just a pipeline; it's a system designed to **reason and act**. This is achieved through a pragmatic, production-ready design that focuses on reliability, testability, and maintainability.
-
-### 2. System Structure
-The code is divided into two primary layers to ensure a clear separation of concerns:
-
--   **`api`:** Handles all HTTP-specific tasks, such as receiving requests, validating input, and formatting responses. This layer knows nothing about the underlying AI logic.
--   **`services`:** Contains all core logic. `agent.service.ts` orchestrates the entire AI flow, while `openai.client.ts` acts as a dedicated and isolated gateway to the OpenAI API.
-
-This pragmatic structure is easy to understand yet powerful enough to maintain a testable and maintainable codebase.
-
-### 3. Key Decision: Demonstrating an Understanding of Transformer Fundamentals
-This solution does not build a transformer model from scratch, but it is designed with a deep awareness of their fundamental principles and limitations:
-
--   **Context Window Management:** The RAG pipeline is designed to selectively retrieve and inject only the most relevant context into the prompt. This ensures we respect the model's token limit and avoid sending superfluous information, which is critical for both performance and cost.
--   **Model Selection:** For this test, **[YOUR CHOSEN MODEL, E.G., GPT-4o]** was used for its advanced reasoning capabilities. In a production scenario, a thorough evaluation would be conducted to determine if a smaller, faster model (e.g., an SLM) could solve 80% of cases with sufficient quality, thus optimizing for cost and latency.
--   **Structured Output:** By using Zod to validate the structure of the LLM's response, we handle the model's inherent non-determinism and force it to act as a reliable component within a larger system.
-
-### 4. Key Decision: Intentional Robustness with Zod
-A core value in this design is the principle of "Intentional Robustness." I never assume external data is correct, whether from a user or from an LLM.
-
-**Schema Validation (`zod`):**
-To ensure system integrity, `zod` schemas are used to validate:
-
-1.  **All incoming data** at the HTTP layer, protecting the system from invalid requests.
-2.  **All data received from the OpenAI API.** This is a critical step in building a reliable AI system. By validating the structure of the LLM response, we ensure that the rest of the system always operates on predictable and type-safe data, drastically reducing the risk of unexpected errors.
-
-**Pragmatic Boundary Enforcement (The `zod-to-json-schema` trade-off):**
-During development, it became clear that relying on abstraction libraries like `zod-to-json-schema` to translate complex Zod contracts into OpenAI's strict JSON Schema format was brittle and prone to silent failures. In accordance with the philosophy of "Simple solutions over clever ones" and to guarantee absolute control over the LLM instructions, the architecture intentionally bypasses this translation layer for complex schemas. 
-
-Instead, we employ a "double boundary":
-*   **Outbound (Deterministic):** A hand-crafted, hardcoded JSON Schema is passed directly to OpenAI's tool API. This guarantees the LLM receives unbroken, highly optimized instructions for the required data shape.
-*   **Inbound (Defensive):** The raw JSON string returned by the LLM is then strictly parsed and validated by our `zod` schema. 
-
-This isolates the non-deterministic "dragon" in a type-safe "cage," demonstrating that true robustness often requires shedding unreliable abstractions in favor of explicit, engineered contracts.
-
-### 5. Key Decision: A Testable Core
-By isolating all external API communication into a dedicated `OpenAIClient` class, we can easily and completely **mock** this layer in our integration tests.
-
-This allows us to verify our entire internal business logic within `agent.service.ts` in a fast and reliable manner, without depending on an external network call. This is fundamental to working according to a `test-driven development` philosophy and ensuring `reliability`.
-
-### 6. The Path to Production & Future Vision
-
-While this is a code challenge, the architecture is designed with production in mind. Here are the next steps:
-
--   **Deployment:** The service is designed to be easily containerized with Docker and deployed as a **Vercel Serverless Function** for maximum scalability and cost-efficiency.
--   **Asynchronous Flows:** For longer AI tasks, the `agent.service` logic could be moved to a background process using **Vercel Cron Jobs** or a queueing system to avoid HTTP timeouts.
--   **Observability:** All structured logging from `pino` would be piped to a centralized logging service (e.g., Vercel Logs or Datadog) in production to enable real-time monitoring, debugging, and performance analysis.
-
--   **Integration in a Full-Stack Context (MCP):** To seamlessly integrate this AI service into a modern web application like Proposales, the next step would be to adapt the API to receive richer, structured context from the frontend. A promising standard for this is the **Model Context Protocol (MCP)**. By adopting an MCP-like pattern, the frontend could send not just a text query, but an entire "workspace" of context (e.g., the current proposal document, user history), making the AI agent exponentially more powerful and context-aware.
+### 2. Controller Orchestration
+The `AgentController` acts as the central orchestrator, executing the pipeline linearly: `Extract -> Retrieve -> Plan -> Assemble (API Execution) -> Evaluate`. It aggregates all intermediate states into a single, comprehensive JSON response for the frontend.
 
 ---
-```
+
+## Testing Philosophy: "Test the Cage, Not the Dragon"
+
+In an AI-native system, traditional 100% code coverage is often a trap. Mocking an LLM just to assert that a function returns the mocked JSON proves nothing about the system's actual robustness. Our testing strategy focuses exclusively on the deterministic boundaries—the "cage" that contains the non-deterministic "dragon."
+
+### 1. What We Test (High ROI)
+*   **The API Contract (Pure Functions):** We rigorously unit-test `assembleProposal`. By feeding it static mock plans, we mathematically prove that our system will *always* generate a perfectly formatted Proposales API payload, regardless of how the AI behaves.
+*   **The Guardrails (Heuristics):** We test our `EvaluationService` by forcing the mocked LLM-judge to return a "perfect 100/100" score for a deliberately flawed plan (e.g., missing dates). We assert that our deterministic heuristics successfully catch the error, override the LLM, and fail the proposal. This proves we do not blindly trust the AI.
+*   **Orchestration & Error Handling:** We test that Zod validation errors (simulating LLM hallucinations) correctly bubble up and fail-fast, and that our VectorStore deduplication logic works for parallel searches.
+
+### 2. What We Intentionally Chose NOT to Test (Low ROI)
+We do not write unit tests for the prompt-generation functions (`extractRequirements`, `generateProposalPlan`). Asserting that a function correctly passes a string to an OpenAI mock is brittle boilerplate. We prioritize architectural confidence over vanity coverage metrics.
+
+### 3. Future Developments (Production Scale)
+If scaling this to production, traditional unit tests are insufficient for the non-deterministic layers. We would implement:
+*   **Evaluation-Driven Development (EDD):** We would curate a "Golden Dataset" of 500+ historical RFPs and their ideal proposals. Every PR would trigger an asynchronous CI pipeline running these RFPs through the agent, measuring regressions in Retrieval Accuracy (Recall@K) and Plan Quality using an LLM-as-a-judge.
+*   **Shadow Deployments:** Before trusting the agent to draft proposals for real clients, it would run in "shadow mode" in production. It would process live RFPs and save the drafts internally, allowing human sales managers to rate the AI's performance and continuously fine-tune the prompts and retrieval weights.
+
+---
+
+## Business Logic & The Premium Segment Focus
+
+A technically sound AI is useless if it doesn't understand the business it operates in. Proposales targets the premium hospitality segment where "tone of voice", efficiency, and error reduction are paramount. We implemented three specific features to align the AI with these business goals:
+
+### 1. The "Premium Brand" Enforcer
+Premium hotels sell experiences, not just rooms. The `generateProposalPlan` prompt is strictly instructed to use a luxurious, bespoke tone of voice. To enforce this, the `EvaluationService` (LLM Judge) is explicitly instructed to grade the `toneScore` based on "Premium Brand Alignment," heavily penalizing robotic or cheap transactional language.
+
+### 2. The "Conversion Driver"
+A proposal's ultimate goal is to close a deal. To drive conversions and create urgency, the AI is instructed to always append a "Next Steps & Validity" block, dynamically calculating a 14-day validity period. This saves the hotel employee time and pushes the end-customer towards a faster decision.
+
+### 3. Human-in-the-Loop (HITL) UI Guardrails
+To "reduce the risk of errors" (a core value proposition for Proposales' customers), the UI implements a strict HITL guardrail. If the `EvaluationService` flags missing requirements or a low score, the primary Call-to-Action button dynamically changes from a green "Review & Send to Client" to a warning-orange "Draft Requires Manual Revision". This prevents sales managers from blindly forwarding hallucinated AI drafts to VIP clients.
+
+---
+
+## Error Handling & Resilience (The "Fail-Fast" Principle)
+
+A common pitfall in AI engineering is "silent failures"—where an LLM hallucinates an invalid ID, the downstream API call fails, and the system crashes without context. To provide a robust UX and maintain observability, we implemented a strict, centralized error-handling strategy.
+
+### 1. Custom Error Classes
+We utilize custom operational error classes (`ApiError`, `ValidationError`, `ExternalServiceError`) defined in `src/core/errors.ts`. This allows us to attach specific HTTP status codes and operational flags to different failure modes.
+
+### 2. Centralized Express Middleware
+Instead of scattering `try/catch` blocks that return `res.status(500)` across every controller, all errors are passed down to a central error-handling middleware in `index.ts`. This ensures that the frontend *always* receives a predictably formatted JSON error response, even if the server encounters an unexpected exception.
+
+### 3. Graceful Degradation in the UI
+If the pipeline fails (e.g., the Proposales API is down, or the OpenAI key is invalid), the frontend catches the formatted error and displays a clear, red "Pipeline Execution Failed" card. This prevents the user from staring at an infinite loading spinner and provides immediate, actionable feedback.
+
+### 4. Future Improvements (Production Scale)
+While our current "fail-fast" approach is correct for a synchronous MVP, a production system handling 1000x scale requires more resilience:
+*   **Asynchronous Queues:** The entire `AgentController` pipeline should be moved to a background worker queue (e.g., BullMQ or Temporal). The initial HTTP request would return a `202 Accepted` with a Job ID, and the frontend would poll for the result.
+*   **Exponential Backoff & Retries:** External API calls (both to OpenAI and Proposales) should be wrapped in a retry mechanism with exponential backoff to handle transient network failures (like `502 Bad Gateway` or `429 Too Many Requests`).
+*   **Circuit Breakers:** If the Proposales API goes down hard, a circuit breaker pattern would stop the system from continuously hammering the API and burning OpenAI tokens on proposals that cannot be saved.
+
+
+
+
+
+## Production Awareness & Scale (The 1000x Vision)
+
+Building a prototype that works locally for 50 products is fundamentally different from building a multi-tenant B2B SaaS product that processes 10,000 RFPs per month across hundreds of hotel properties. Here is how this architecture must evolve for production scale:
+
+### 1. Data Ingestion & Sync (Webhooks over Batch)
+*   **Current State:** The `vector-store.json` is generated via a manual batch script (`db:ingest`).
+*   **Production Vision:** Hotel inventory and pricing change daily. A static file is unacceptable. We must migrate to a dedicated vector database (e.g., Pinecone, pgvector) and subscribe to Proposales' webhooks (e.g., `content.updated`, `content.deleted`). When a hotel modifies a product, our webhook handler immediately recalculates and upserts that specific embedding. A nightly Cron job would perform a "delta-sync" to guarantee absolute consistency between the Proposales API and our vector index.
+
+### 2. Deep Observability & Telemetry
+*   **Current State:** We rely on console logs and a UI error state.
+*   **Production Vision:** In AI systems, observability isn't just about uptime; it's about understanding *why* the AI made a decision and how much it cost. Every pipeline execution must be wrapped in an LLM observability platform (e.g., **LangSmith, Helicone, or Datadog LLM Observability**). This provides:
+    *   **Cost & Token Tracking:** Granular visibility into the cost per proposal, allowing us to identify expensive edge cases and optimize prompt lengths.
+    *   **Latency Profiling:** Tracking the P95 latency of each pipeline step (Extract vs. Plan) to identify bottlenecks.
+    *   **Prompt Drift Detection:** By continuously monitoring the average `EvaluationScore` over time, we can set up automated alerts to detect if a new model version (or a change in the product catalog) suddenly degrades proposal quality.
+
+### 3. CI/CD & Evaluation-Driven Development (EDD)
+*   **Current State:** We have deterministic unit tests for the API contract and heuristic guardrails.
+*   **Production Vision:** How do we know a prompt tweak didn't break the AI's ability to plan weddings? We must implement **Evaluation-Driven Development (EDD)** in our CI/CD pipeline (e.g., GitHub Actions). We curate a "Golden Dataset" of 500+ historical RFPs and their ideal proposals. Every Pull Request triggers an asynchronous pipeline running these RFPs through the agent, measuring regressions in Retrieval Accuracy (Recall@K) and Plan Quality using an LLM-as-a-judge. PRs are blocked if quality degrades.
+
+### 4. Security, Privacy & GDPR (Data Masking)
+*   **Current State:** Raw RFP text is sent directly to OpenAI.
+*   **Production Vision:** B2B hospitality deals with highly sensitive data (VIP guests, corporate budgets, PII). Before any RFP text hits the LLM, it must pass through a **Data Masking / PII-scrubbing layer** (e.g., Microsoft Presidio). Names, emails, and specific company names are replaced with tokens (`[PERSON_1]`, `[COMPANY_A]`) and only restored after the proposal is generated. This guarantees GDPR compliance and prevents OpenAI from training on customer secrets.
+
+### 5. Pragmatic Model Routing (Cost vs. Reasoning)
+*   **Current State:** We use `gpt-4o` for all reasoning tasks.
+*   **Production Vision:** Using a flagship model for every request destroys unit economics. We would implement a **Model Router**. A fast, cheap model (e.g., `gpt-3.5-turbo` or `claude-3-haiku`) acts as a classifier. If the RFP is simple (e.g., "Book a meeting room for 2 people"), the cheap model handles the entire pipeline. If the RFP is complex (e.g., a 3-day destination wedding), the router escalates the task to the high-reasoning model (`gpt-4o`). This optimizes both latency and operational cost.
+
+
+
+
+
+
+
+
+## Honest Trade-offs & What I Cut
+
+To deliver a hyper-focused, robust AI pipeline within a reasonable timeframe, several deliberate cuts were made:
+
+### 1. Unused API Endpoints (YAGNI)
+I intentionally ignored `GET /v3/companies`, `GET /v3/proposals`, and `GET /v3/proposal-search`. While essential for a full B2B SaaS product, building a CRUD dashboard to list historical proposals is tangential to demonstrating "Agentic Proposal Building." I hardcoded `companyId: 1` to focus 100% of my engineering effort on the AI orchestration, retrieval quality, and evaluation rigor.
+
+### 2. Database Persistence
+The system relies on an in-memory VectorStore and does not persist the generated proposals locally (e.g., in Postgres). All state lives in the Proposales API. In a real application, I would implement a relational database to track draft states, user edits, and final conversion metrics to feed back into the AI's training loop.
+
+### 3. Authentication
+The UI lacks login/auth. In production, the Express backend would require strict JWT validation to ensure users can only generate proposals for their authorized `companyId`.
+
+---
+
+## Domain Boundaries & Future Constraints Modeling (Hospitality Niche)
+
+While this architecture successfully demonstrates a semantic RAG pipeline, it intentionally simplifies the complex reality of hotel inventory management (PMS/CMS) to focus on AI orchestration. A full production environment for the premium hospitality segment requires addressing these niche-specific physical and business constraints:
+
+### 1. Inventory Compatibility & Spatial Constraints
+*   **The Problem:** Currently, the LLM assumes all products are independent and freely combinable ("a la carte"). In reality, a "Heavy Duty 4K Projector" might require specific ceiling mounts and can only be booked in the "Grand Ballroom", not a "Standard Hotel Room".
+*   **The Solution:** The VectorStore must include a compatibility matrix in its metadata. Before `assembleProposal` executes, a deterministic Rule Engine must verify that the AI's selected products can physically coexist in the proposed spaces.
+
+### 2. Capacity & Flow Constraints
+*   **The Problem:** If the AI books a "Small Boardroom" (max capacity: 10), it cannot logically add a "Lunch Buffet" product with a quantity of 50 for that same room.
+*   **The Solution:** The `generateProposalPlan` prompt must be injected with strict capacity metadata for each retrieved room, forcing the LLM to respect `max_capacity` when calculating quantities for related Food & Beverage (F&B) products.
+
+### 3. Dynamic Pricing & Live Availability (PMS Integration)
+*   **The Problem:** The AI currently assumes a static catalog. Hotels use dynamic pricing (Revenue Management Systems) and live availability (Property Management Systems). Proposing a room that was booked 5 minutes ago is a critical failure.
+*   **The Solution:** The pipeline must include a mandatory API Tool Call to the hotel's PMS to check live availability and lock (hold) the inventory *before* the final assembly step is allowed to proceed.
+
+### 4. Multi-Property Routing (Tenant-Aware RAG)
+*   **The Problem:** Large hotel chains receive central RFPs (e.g., "We need a conference venue in Stockholm"). The AI must know *which* property to select before selecting products.
+*   **The Solution:** The pipeline must start with an LLM Router that evaluates the RFP against "Property Embeddings" to select the correct hotel. The subsequent VectorStore search must then use strict **Metadata Filtering** (`property_id === X`) to ensure we don't propose a meeting room in Gothenburg for an event in Stockholm.
+
+### 5. Human-in-the-Loop (HITL) & Legal Binding
+*   **The Problem:** In B2B hospitality, a proposal is a legally binding contract.
+*   **The Solution:** While this agent autonomously drafts the proposal, a production deployment requires a mandatory "Draft State" hand-off. The AI assembles the draft, notifying a human sales manager for final review, pricing adjustments, and explicit approval before client delivery.
+
