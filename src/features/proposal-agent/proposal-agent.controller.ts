@@ -32,7 +32,7 @@ export async function handleAgentRequest(req: Request, res: Response, next: Next
 
     // === STEP 2: RETRIEVE ===
     console.log('▶️ Starting "Retrieve" step...');
-    const retrievedProducts = await ProposalAgentService.retrieveProducts(extractedRequirements, vectorStore);
+    const retrievedProducts = await ProposalAgentService.retrieveProducts(rfpText, extractedRequirements, vectorStore);
     console.log('✅ "Retrieve" step completed.');
 
     // === STEP 3: PLAN ===
