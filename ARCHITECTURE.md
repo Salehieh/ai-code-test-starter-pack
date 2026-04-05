@@ -242,7 +242,7 @@ Building a prototype that works locally for 50 products is fundamentally differe
 To deliver a hyper-focused, robust AI pipeline within a reasonable timeframe, several deliberate cuts were made:
 
 ### 1. Unused API Endpoints (YAGNI)
-I intentionally ignored `GET /v3/companies`, `GET /v3/proposals`, and `GET /v3/proposal-search`. While essential for a full B2B SaaS product, building a CRUD dashboard to list historical proposals is tangential to demonstrating "Agentic Proposal Building." I hardcoded `companyId: 1` to focus 100% of my engineering effort on the AI orchestration, retrieval quality, and evaluation rigor.
+I intentionally ignored `GET /v3/companies`, `GET /v3/proposals`, and `GET /v3/proposal-search`. While essential for a full B2B SaaS product, building a CRUD dashboard to list historical proposals is tangential to demonstrating "Agentic Proposal Building." I configured a static `companyId` via environment variables to focus 100% of my engineering effort on the AI orchestration, retrieval quality, and evaluation rigor.
 
 ### 2. Database Persistence
 The system relies on an in-memory VectorStore and does not persist the generated proposals locally (e.g., in Postgres). All state lives in the Proposales API. In a real application, I would implement a relational database to track draft states, user edits, and final conversion metrics to feed back into the AI's training loop.
