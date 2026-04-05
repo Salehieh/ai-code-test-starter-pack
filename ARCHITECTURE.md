@@ -28,9 +28,6 @@ We evaluate depth of AI engineering thinking over polish. Specifically:
 
 
 
-+++also: How would I make this more accurate in the future (70/100, etc.)
-
-**
 
 
 
@@ -131,6 +128,7 @@ To prove the system's reliability, a dedicated `EvaluationService` was implement
 The service employs a two-pronged approach to grade the generated proposal against the original RFP across specific quality dimensions:
 1.  **Completeness & Requirement Coverage (Deterministic Heuristics):** Fast, 100% reliable programmatic checks (e.g., "Did the sum of the product quantities match the requested guest count?"). If these fail, the score is mathematically capped, overriding any LLM leniency.
 2.  **Product Relevance & Tone (LLM-as-a-Judge):** A secondary LLM call acts as a strict Quality Assurance Auditor. It uses Chain-of-Thought prompting (enforced by placing the `reasoning` field first in the Zod schema) to evaluate qualitative dimensions like `toneScore` (premium brand alignment) and `accuracyScore` (product relevance), outputting a strict `EvaluationScorecard`.
+*(Note: "Pricing accuracy" was intentionally omitted from the automated evaluation since the Proposales V3 API handles pricing internally based on the `variation_id`, and the AI does not have access to live PMS pricing data.)*
 
 ---
 
