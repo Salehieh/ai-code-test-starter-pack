@@ -17,12 +17,13 @@ export const ExtractedRequirementsSchema = z.object({
   
   budget: z.object({
     min: z.number().optional().describe("The minimum budget if a range is given."),
-    max: z.number().optional().describe("The maximum or approximate budget amount."),
+    max: z.number().optional().describe("The absolute maximum budget if a hard limit is given."),
+    approximate: z.number().optional().describe("The approximate budget if words like 'around', 'roughly', or 'about' are used."),
     currency: z.string().default('EUR'),
     description: z.string().optional().describe("Original budget text with nuances, e.g., 'around 2000' or 'excluding accommodation'."),
   }).optional().describe("The customer's budget. Omit if not mentioned."),
 
-  specialRequests: z.array(z.string()).optional().describe("A list of specific requirements like 'projector', 'spa access', or '40 hotel rooms'."),
+  specialRequests: z.array(z.string()).optional().describe("A list of specific, tangible requirements (rooms, meals, equipment) like 'main stage', '2 breakout rooms', 'networking lunch', 'projector', 'spa access', or '40 hotel rooms'. Do NOT extract abstract concepts like 'tracks' or 'sessions'."),
 
 });
 

@@ -24,6 +24,7 @@ async function extractRequirements(rfpText: string): Promise<ExtractedRequiremen
   3. If a REQUIRED field is unclear, make your best reasoned extraction based on the text.
   4. If an OPTIONAL field is missing or cannot be confidently inferred from the text, you MUST omit it. Do not use placeholders like 'N/A'.
   5. For dates, always populate the 'description' field with the original text. Only populate 'start' and 'end' if you can confidently parse a full ISO 8601 datetime.
+  6. CRITICAL: The 'specialRequests' array MUST contain EVERY single tangible item, room, meal, or physical activity mentioned in the RFP (e.g., 'main stage', '2 breakout rooms', 'networking lunch'). Do NOT extract abstract concepts like 'tracks', 'sessions', or 'days'. Do not summarize tangible items away into the 'eventType'.
   
   Today's date is ${new Date().toISOString().split('T')[0]}.`;
   
