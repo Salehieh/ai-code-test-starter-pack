@@ -126,16 +126,16 @@ describe('ProposalAgentService - Deterministic Assembly', () => {
       };
 
       // Act
-      const results = await ProposalAgentService.retrieveProducts(mockRequirements as any, mockVectorStore as any);
+      const results = await ProposalAgentService.retrieveProducts('Raw text', mockRequirements as any, mockVectorStore as any);
 
-      // Assert: We should only get 2 unique products back, not 3
+      // Assert: We should only get 2 unique products back, not 4
       expect(results).toHaveLength(2);
       const productIds = results.map(r => r.product_id);
       expect(productIds).toContain(10);
       expect(productIds).toContain(20);
       
-      // Verify parallel execution (search was called twice)
-      expect(mockVectorStore.search).toHaveBeenCalledTimes(2);
+      // Verify parallel execution (search was called three times: base, request, catch-all)
+      expect(mockVectorStore.search).toHaveBeenCalledTimes(3);
     });
   });
 });
