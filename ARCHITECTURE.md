@@ -100,6 +100,47 @@ While this architecture successfully demonstrates a semantic RAG pipeline, it in
 
 
 
+### 10. The Agentic Pipeline (Pillar 2)
+
+The core logic of the system is built around a multi-step, deterministic pipeline that orchestrates non-deterministic AI models. This approach was chosen over a single "Mega-Prompt" or an autonomous "AutoGPT-style" loop.
+
+**Why not a single Mega-Prompt?**
+Asking an LLM to read an RFP, search a database, and output a massive, nested JSON payload in one step is a recipe for hallucinations, high latency, and impossible debugging. By decomposing the task, we isolate complexity.
+
+**Why not an Autonomous Loop (Self-Healing Agent)?**
+We considered an architecture where the agent critiques its own plan and loops until perfect. This was rejected. It violates the principle of "Simple solutions over clever ones." Autonomous loops introduce unpredictable latency, unbounded costs, and the "blind leading the blind" problem (an LLM confused enough to write a bad plan is often confused enough to approve it).
+
+Instead, the pipeline is strictly linear:
+1.  **Extract:** A focused LLM call extracts structured data (dates, guests, special requests) from the raw RFP.
+2.  **Retrieve:** We use a Multi-Query Semantic Search strategy. Instead of searching the vector store with the entire RFP, we spawn parallel searches for each extracted requirement (e.g., one search for "vegan meals", one for "projector"). This drastically improves retrieval accuracy over a single, noisy embedding.
+3.  **Plan:** A second LLM call acts as the "Event Planner," selecting items from the retrieved catalog to build a logical sequence of blocks.
+4.  **Assemble:** A 100% deterministic TypeScript function maps the LLM's plan into the exact JSON payload required by the Proposales API. No AI is used here, ensuring complete safety before network execution.
+
+
+
+
+
+### 8. Quality Assurance & Evaluation (Pillar 3)
+
+A core tenet of treating AI as an engineering discipline is establishing rigorous, automated evaluation. To prove the system's reliability, a dedicated `EvaluationService` was implemented as a "first-class citizen" in the architecture, completely decoupled from the generation logic.
+
+**The Hybrid Evaluation Strategy:**
+The service employs a two-pronged approach to grade the generated proposal against the original RFP:
+1.  **Deterministic Heuristics:** Fast, 100% reliable programmatic checks (e.g., "Did the sum of the product quantities match the requested guest count?"). If these fail, the score is mathematically capped, overriding any LLM leniency.
+2.  **LLM-as-a-Judge:** A secondary LLM call acts as a strict Quality Assurance Auditor. It uses Chain-of-Thought prompting (enforced by placing the `reasoning` field first in the Zod schema) to evaluate qualitative dimensions like tone and accuracy, outputting a strict `EvaluationScorecard`.
+
+This asynchronous evaluation loop ensures that sales managers are instantly alerted to LLM hallucinations or omissions via the frontend dashboard *before* a proposal is ever sent to a client.
+
+### 9. Frontend & Orchestration (Pillar 4)
+
+In alignment with the instruction that "a clean but simple interface... is far more valuable than a polished app," the frontend was intentionally built using vanilla HTML/JS without heavy frameworks like React.
+
+The `AgentController` acts as the central orchestrator, executing the 5-step pipeline linearly:
+`Extract -> Retrieve -> Plan -> Assemble (API Execution) -> Evaluate`
+
+The controller aggregates all intermediate states (the drafted URL, the raw debug plan, and the QA scorecard) into a single JSON response. The vanilla JS frontend acts as a "Sales Dashboard," parsing this payload to provide immediate, transparent observability into the AI's decision-making process.
+
+
 
 
 
