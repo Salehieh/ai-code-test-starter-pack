@@ -183,6 +183,7 @@
                 
                 // Simple Markdown to HTML parser for the reasoning text
                 let formattedReasoning = eval.reasoning
+                    .replace(/\\n/g, '\n') // Convert literal escaped \n to actual newlines just in case
                     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
                     .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic
                     .replace(/\n\n/g, '<br><br>') // Paragraphs
