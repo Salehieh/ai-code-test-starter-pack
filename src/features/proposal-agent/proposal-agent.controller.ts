@@ -79,7 +79,11 @@ export async function handleAgentRequest(req: Request, res: Response, next: Next
         proposalUrl: finalResult.proposal.url,
         proposalUuid: finalResult.proposal.uuid,
         evaluation: scorecard, // Returning the scorecard for the frontend
-        debugPlan: proposalPlan 
+        pipeline: {
+          extractedRequirements,
+          retrievedProducts,
+          proposalPlan
+        }
       },
     });
 

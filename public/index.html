@@ -37,6 +37,14 @@
         .error-card h3 { margin-top: 0; color: #991b1b; border-bottom: 1px solid #fca5a5; padding-bottom: 10px; }
         .error-details { font-family: monospace; background: #fee2e2; padding: 10px; border-radius: 4px; margin-top: 10px; white-space: pre-wrap; word-break: break-word; }
         
+        .pipeline-card { background-color: #fafafa; border-left: 4px solid #0070f3; }
+        .pipeline-step { margin-bottom: 10px; background: white; border: 1px solid #eaeaea; border-radius: 6px; padding: 10px; }
+        .pipeline-step summary { cursor: pointer; font-weight: 500; outline: none; }
+        .pipeline-step summary:hover { color: #0070f3; }
+        .pipeline-step pre { margin-top: 10px; margin-bottom: 0; }
+        .retrieved-list { margin-top: 10px; font-size: 13px; background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 6px; }
+        .retrieved-list ul { margin: 0; padding-left: 20px; }
+        
         pre { background-color: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 6px; overflow-x: auto; font-size: 13px; }
     </style>
 </head>
@@ -60,15 +68,35 @@
     <div id="result-container">
         <h2>System Output</h2>
         
+        <div class="card pipeline-card">
+            <h3>Pipeline Execution Trace</h3>
+            <p style="font-size: 14px; color: #666;">Transparent view of the AI agent's internal reasoning and data flow.</p>
+            
+            <details class="pipeline-step">
+                <summary><strong>Step 1: Extract Requirements</strong> (LLM)</summary>
+                <pre id="step-extract"></pre>
+            </details>
+            
+            <details class="pipeline-step">
+                <summary><strong>Step 2: Retrieve Products</strong> (Vector Search)</summary>
+                <div id="step-retrieve" class="retrieved-list"></div>
+            </details>
+            
+            <details class="pipeline-step">
+                <summary><strong>Step 3: Generate Plan</strong> (LLM)</summary>
+                <pre id="step-plan"></pre>
+            </details>
+        </div>
+
         <div id="proposal-card" class="card">
-            <h3>1. Draft Proposal Created</h3>
+            <h3>Step 4: Assemble & Create Proposal</h3>
             <p>The pipeline successfully generated a draft proposal in the Proposales system.</p>
             <a href="#" id="proposal-url" target="_blank" class="proposal-link">Open Draft in Proposales →</a>
         </div>
 
         <div id="evaluation-card" class="card scorecard">
             <div class="score-header">
-                <h3>2. Quality Assurance Scorecard</h3>
+                <h3>Step 5: Quality Assurance Scorecard</h3>
                 <div id="score-circle" class="score-circle">--</div>
             </div>
             
@@ -85,9 +113,6 @@
                 <ul id="missed-reqs-list"></ul>
             </div>
         </div>
-
-        <h3>3. Raw Debug Plan (LLM Output)</h3>
-        <pre id="debug-json">Waiting for data...</pre>
     </div>
 
     <script>
@@ -122,6 +147,19 @@
                 const data = result.data;
 
                 const eval = data.evaluation;
+                const pipeline = data.pipeline;
+
+                // 0. Populate Pipeline Trace
+                if (pipeline) {
+                    document.getElementById('step-extract').textContent = JSON.stringify(pipeline.extractedRequirements, null, 2);
+                    
+                    const retrieveHtml = pipeline.retrievedProducts.length > 0 
+                        ? `<ul>${pipeline.retrievedProducts.map(p => `<li><strong>${p.title.en}</strong> (ID: ${p.product_id})</li>`).join('')}</ul>`
+                        : `<p style="color: #ef4444; margin: 0;">No products retrieved.</p>`;
+                    document.getElementById('step-retrieve').innerHTML = retrieveHtml;
+                    
+                    document.getElementById('step-plan').textContent = JSON.stringify(pipeline.proposalPlan, null, 2);
+                }
 
                 // 1. Update Proposal Link (Human-in-the-Loop Guardrail)
                 const proposalUrlEl = document.getElementById('proposal-url');
@@ -149,7 +187,8 @@
                     .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic
                     .replace(/\n\n/g, '<br><br>') // Paragraphs
                     .replace(/\n- /g, '<br>&nbsp;&nbsp;• ') // Bullet points with indent
-                    .replace(/\n(\d+\.) /g, '<br><br><strong>$1</strong> '); // Numbered lists with spacing
+                    .replace(/\n(\d+\.) /g, '<br><br><strong>$1</strong> ') // Numbered lists with spacing
+                    .replace(/\n/g, '<br>'); // Catch-all for remaining single newlines
                 
                 document.getElementById('reasoning-text').innerHTML = formattedReasoning;
 
@@ -168,9 +207,6 @@
                 } else {
                     missedReqsContainer.style.display = 'none';
                 }
-
-                // 3. Update Debug JSON
-                document.getElementById('debug-json').textContent = JSON.stringify(data.debugPlan, null, 2);
 
                 // Show results
                 resultContainer.style.display = 'block';
