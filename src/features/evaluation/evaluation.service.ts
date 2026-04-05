@@ -54,12 +54,12 @@ export async function evaluateProposal(
   const manualEvalJsonSchema = {
     type: "object",
     properties: {
-      reasoning: { type: "string" },
-      missedRequirements: { type: "array", items: { type: "string" } },
-      toneScore: { type: "number" },
-      accuracyScore: { type: "number" },
-      finalScore: { type: "number" },
-      isApproved: { type: "boolean" }
+      reasoning: { type: "string", description: "A detailed explanation of why the proposal received this score based on the original requirements." },
+      missedRequirements: { type: "array", items: { type: "string" }, description: "A list of explicit requests from the RFP that are missing from the proposal plan. Empty array if none." },
+      toneScore: { type: "number", description: "Score from 0-100 on the professionalism and warmth of the custom text blocks." },
+      accuracyScore: { type: "number", description: "Score from 0-100 on how accurately the chosen products match the client's requested event type, guest count, and dates." },
+      finalScore: { type: "number", description: "The overall weighted score (0-100). Deduct heavily for missing requirements." },
+      isApproved: { type: "boolean", description: "True ONLY IF finalScore is >= 80 AND missedRequirements is empty. Otherwise false." }
     },
     required: ["reasoning", "missedRequirements", "toneScore", "accuracyScore", "finalScore", "isApproved"],
     additionalProperties: false

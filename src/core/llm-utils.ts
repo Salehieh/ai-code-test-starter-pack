@@ -88,6 +88,9 @@ export async function getStructuredResponse<T extends z.ZodTypeAny>(
     }
 
     const rawJson = toolCall.function.arguments;
+    console.log('--- 🐛 DEBUG: Raw LLM JSON Output ---');
+    console.log(rawJson);
+    console.log('--------------------------------------');
     
     let parsed;
     try {
