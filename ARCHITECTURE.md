@@ -248,6 +248,9 @@ I intentionally ignored `GET /v3/companies`, `GET /v3/proposals`, and `GET /v3/p
 The system relies on an in-memory VectorStore and does not persist the generated proposals locally (e.g., in Postgres). All state lives in the Proposales API. In a real application, I would implement a relational database to track draft states, user edits, and final conversion metrics to feed back into the AI's training loop.
 
 ### 3. Authentication
+
+### 4. UI Rendering Constraints (Validity Block Placement)
+During E2E testing, I observed that the "Next Steps & Validity" block renders *above* the product list in the final Proposales UI, despite being appended to the very end of the `description_md` string in my code. This occurs because the Proposales V3 API payload structure renders `description_md` before iterating through the `blocks` array. Without a dedicated `footer_md` field or a supported `text-block` type within the `blocks` array, it is structurally impossible to place text below the products via this specific API endpoint. I chose to accept this rendering constraint rather than attempting brittle workarounds.
 The UI lacks login/auth. In production, the Express backend would require strict JWT validation to ensure users can only generate proposals for their authorized `companyId`.
 
 ---
