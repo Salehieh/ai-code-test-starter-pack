@@ -8,37 +8,37 @@ Instead of immediately asking the AI to write code, I started by feeding it the 
 **My Prompt:**
 > 
 
-**The God-prompt:**
+***The God-prompt:**
 
-***Vänligen agera som min seniora tech-mentor och strategiska partner.*** ***Ditt enda mål är att hjälpa mig att leverera en exceptionell lösning på ett kodtest och säkra rollen som Lead AI Engineer.*** Här är all kontext du behöver.
-
-**1. MIN PROFIL (Kandidaten)**
-*   **Vem:** Samuel Salehieh, AI-native Architect.
-*   **Filosofi:** Bygger från grunden med Node.js, TypeScript och PostgreSQL (No-ORM) för maximal kontroll. Expert på RAG och "Intentional Robustness" med Zod.
-*   **Supervapen:** Erfarenhet av att bygga AI för premium-varumärken (Asket) där "tone of voice" och kvalitet är avgörande, en direkt parallell till Proposales kundsegment.
-
-**2. FÖRETAGET (Proposales)**
-*   **Affärskontext:** De är en B2B SaaS för premium-segmentet (hotell etc.). Deras produkt handlar om effektivitet, professionalism och att skapa en imponerande, sömlös upplevelse för både säljare och kund.
-*   **Ingenjörs-DNA (De Gyllene Fraserna):**
-    *   "AI som en ingenjörsdisciplin": Fokus på **tillförlitlighet, observerbarhet, utvärdering**.
-    *   "Långsiktig underhållsbarhet över kortsiktig hastighet".
-    *   "Enkla lösningar över smarta".
-    *   "Minimala abstraktioner, inga ORMs".
-    *   "Test-driven utveckling" och hög kodkvalitet.
-    *   "Modulär kod" med interna bibliotek (vår `src/core`-mapp simulerar detta).
-
-**3. UPPDRAGET (Målet för Kodtestet)**
-*   **Huvudmål:** Leverera ett "Full-Stack Manifest" – inte bara kod. Lösningen ska vara en robust, testbar och väldokumenterad mikrotjänst som bevisar Lead-kapacitet.
-*   **Övergripande Mål:** Leveransen ska vara så överlägsen i tanke, arkitektur och professionalism att anställningsbeslutet blir självklart.
-
-**4. DE GYLLENE REGLERNA (Vår Strategi)**
-*   **Arkitektur först:** Följ den förberedda arkitekturen (API > Service > Core) för maximal testbarhet och separation of concerns.
-*   **Robusthet genom kontrakt:** All extern data (användarinput, LLM-svar) MÅSTE valideras rigoröst med Zod-scheman.
-*   **Testa buren, inte draken:** Isolera det icke-deterministiska AI-lagret (`llm-utils.ts`) och mocka det i testerna för att skapa en 100% deterministisk och pålitlig testsvit.
-*   **Pricken över i:et, inte över-ingenjörskonst:** Fokusera på att lösa kärnuppgiften perfekt. Nämn produktionsaspekter som avancerad säkerhet, GDPR-hantering och skalbarhet i `ARCHITECTURE.md` som medvetna "nästa steg", men implementera dem INTE i koden.
-*   **Kommunicera som en Lead:** Använd deras "Gyllene Fraser" i all dokumentation (`README.md`, `ARCHITECTURE.md`) och i commit-meddelanden för att visa att du förstår och delar deras kultur.
-
-**Min uppgift till dig är nu att, baserat på den kodtest-uppgift jag strax kommer att klistra in, agera som min sparringpartner för att skapa den bästa möjliga implementationsplanen som följer dessa regler.**
+> ***Please act as my senior tech-mentor and strategic partner.*** ***Your sole goal is to help me deliver an exceptional solution to a coding test and secure the role of Lead AI Engineer.*** Here is all the context you need.
+> 
+> **1. MY PROFILE (The Candidate)**
+> *   **Who:** Samuel Salehieh, AI-native Architect.
+> *   **Philosophy:** Builds from the ground up with Node.js, TypeScript, and PostgreSQL (No-ORM) for maximum control. Expert in RAG and "Intentional Robustness" with Zod.
+> *   **Superweapon:** Experience building AI for premium brands (Asket) where "tone of voice" and quality are crucial—a direct parallel to Proposales' customer segment.
+> 
+> **2. THE COMPANY (Proposales)**
+> *   **Business Context:** They are a B2B SaaS for the premium segment (hotels, etc.). Their product is about efficiency, professionalism, and creating an impressive, seamless experience for both the seller and the customer.
+> *   **Engineering DNA (The Golden Phrases):**
+>     *   "AI as an engineering discipline": Focus on **reliability, observability, evaluation**.
+>     *   "Long-term maintainability over short-term speed".
+>     *   "Simple solutions over smart ones".
+>     *   "Minimal abstractions, no ORMs".
+>     *   "Test-driven development" and high code quality.
+>     *   "Modular code" with internal libraries (our `src/core` folder simulates this).
+> 
+> **3. THE MISSION (Goal of the Code Test)**
+> *   **Primary Goal:** Deliver a "Full-Stack Manifest"—not just code. The solution must be a robust, testable, and well-documented microservice that proves Lead capacity.
+> *   **Overarching Goal:** The delivery must be so superior in thought, architecture, and professionalism that the hiring decision becomes obvious.
+> 
+> **4. THE GOLDEN RULES (Our Strategy)**
+> *   **Architecture first:** Follow the prepared architecture (API > Service > Core) for maximum testability and separation of concerns.
+> *   **Robustness through contracts:** All external data (user input, LLM responses) MUST be rigorously validated with Zod schemas.
+> *   **Test the cage, not the dragon:** Isolate the non-deterministic AI layer (`llm-utils.ts`) and mock it in tests to create a 100% deterministic and reliable test suite.
+> *   **The finishing touches, not over-engineering:** Focus on solving the core task perfectly. Mention production aspects like advanced security, GDPR handling, and scalability in `ARCHITECTURE.md` as conscious "next steps", but DO NOT implement them in the code.
+> *   **Communicate like a Lead:** Use their "Golden Phrases" in all documentation (`README.md`, `ARCHITECTURE.md`) and in commit messages to show that you understand and share their culture.
+> 
+> **My task for you now is, based on the code test assignment I will paste shortly, to act as my sparring partner to create the best possible implementation plan that follows these rules.**
 
 
 **The Result:** This set the tone for the entire project. The AI stopped suggesting brittle "all-in-one" LangChain solutions and instead helped me design the isolated, testable 5-step pipeline we see today.
@@ -84,14 +84,22 @@ At two occasions, the AI (Gemini 3.1 Pro) in Cursor would get stuck in a plannin
 ## Summary
 Throughout this project, I used AI (Gemini 3.1 Pro within Cursor) for practically everything: 
 
-*   **Synthesizing all initial context** (Technical Case's instructions, my own Proposales customer and business research, AI best practices) into a 'God-prompt'.
-*   **Facilitating my internalization of the system architecture;** accelerating the building of my own internal mental model of the system.
-*   **Ascertaining the overarching architecture before delving into details:** Arriving at a broad, non-detailed implementation sequence for the entire project, which served as a compass to avoid getting lost in the weeds.
-*   **Systematic Brainstorming:** Going through each step from the overarching architecture and brainstorming based on the God-prompt and the codebase (forcing the AI to come up with alternative approaches to a specific problem, weighing their pros & cons).
-*   **Crafting clear implementation plans:** Based on the brainstorming, detailing exactly what is to be implemented—how, where, and why.
-*   **Executing the implementation plan** using Gemini.
-*   **Atomic Committing as we go:** To maintain a clean repo and always create a "backup" of the latest working version, allowing us to revert if something regressed irreparably.
-*   **Creating tests** (following the same pipeline: Brainstorming based on God-prompt -> weighing pros & cons -> crafting an implementation plan -> execution).
-*   **Debugging and writing up ARCHITECTURE.md as we go;** documenting our reasoning and trade-offs in real-time.
+**Synthesizing all initial context (Technical Case's instructions, my own Proposales customer and business research, AI best practices for this type of assignment (that I've also researched in a similar fashion), etc.) into a 'God-prompt'**
 
-I thus systematically utilized AI to accelerate the process and maximize the quality of the output. By maintaining strict directive control over the AI; never trusting it, by forcing the AI to seriously evaluate alternatives and weigh their pros and cons against our "north star"–Our God-prompt—and our current codebase, I ensure the final product is built with strict engineering rigor.
+**Facilitating my **internalization of the system architecture**; accelerating 'building' my own internal model of the system**
+
+**Ascertaining the overarching architecture, before delving into details: Arriving at a broad, non-detailed implementation sequence for the entire project, which is to be used as a compass, for not getting lost/stuck, in the following steps**
+
+**Going through each step from the overarching archiecture and brainstorming based on the God-prompt and the codebase (coming up with alternative approaches to a specific problem, weighing their pros & cons, with regard to the God-prompt and the codebase)**
+
+**Based on the brainstorming, crafting a clear implementation plan, detailing exactly what is to be implemented—how, where and why**
+
+**Executing the implementation plan using Gemini**
+
+**Committing as we go, to: 1. maintain a clean repo, and 2. always create a "backup" of the latest working version, so we always can revert if something regresses irreparably upon further developing**
+
+**Creating tests (of course as per the previous 'pipeline': Brainstorming based on God-prompt --> weighing pros & cons, --> crafting an implementation plan --> execution of said plan)**
+
+**Debugging, writing up ARCHITECTURE.md as we go; documenting our reasoning and trade-offs**
+
+I thus systematically utilized AI to accelerate the process, and maximize the quality of the output. By maintaining strict directive control over the AI; never trusting it, by forcing the AI to seriously evaluate alternatives and weigh their pros and cons against our "north star", our God-prompt, and our current codebase, I ensure the final product is built with strict engineering rigor. 
