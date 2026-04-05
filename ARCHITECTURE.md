@@ -1,36 +1,3 @@
-**META:
-
-THIS DOCUMENT SHOULD CONTAIN THESE POINTS:
-
-
-2. Architecture document (in your README or a separate doc) covering:
-- System diagram showing data flow between components
-- Model selection rationale — why this model for this step?
-- Retrieval strategy — embedding model, indexing approach, similarity metric, ingestion design
-- Evaluation methodology — what dimensions, how scored, why these dimensions
-- Production considerations — what would you change for 1,000x scale? Think about: cost routing, caching, async processing, observability, latency budgets
-- Security considerations — prompt injection, input validation, guardrails
-- Honest trade-offs — what did you cut? What would you do differently with more time?
-
-
-
-
-3.
-
-What We Care About
-We evaluate depth of AI engineering thinking over polish. Specifically:
-- Retrieval design — Did you build a real semantic search layer, or stuff everything into context? Did you think about ingestion, not just retrieval?
-- Agentic architecture — Is your pipeline multi-step with clear decomposition, or a single prompt? How do you handle failures and validation?
-- Evaluation rigor — Did you build automated quality measurement, or just eyeball it?
-- Production awareness — Do you reason about cost, latency, observability, security, and scale?
-- Code quality and communication — Is your code well-structured? Is your architecture document clear and honest?
-
-
-
-
-
-
-
 # Architectural Decisions & Engineering Philosophy
 
 This document outlines the architectural choices, trade-offs, and underlying philosophy for the Proposales AI Agent. The goal is to demonstrate a mindset geared towards building **production-grade, defensible AI systems**, treating AI not as magic, but as a rigorous engineering discipline.
