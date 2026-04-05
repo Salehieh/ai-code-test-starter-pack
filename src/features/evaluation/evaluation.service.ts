@@ -35,7 +35,7 @@ export async function evaluateProposal(
   
   RULES:
   1. You MUST be highly critical, but your reasoning MUST be concise. Do not write an essay.
-  2. Write your 'reasoning' using a short, bulleted list. You MUST start each bullet point with a bold label like **Success:**, **Critical Gap:**, or **Tone:** to make it easily scannable.
+  2. Write your 'reasoning' using a short, bulleted list. You MUST start each bullet point with a bold label like **Success:**, **Critical Gap:**, or **Tone:** to make it easily scannable. Do not use nested bullet points or hyphens before the bold labels.
   3. You MUST sort your bullet points in this exact order: First list all **Success:** points, then add a blank line, then list all **Critical Gap:** points, then add a blank line, and finally end with the **Tone:** point.
   4. If the plan misses ANY specific request (like a dietary requirement or specific equipment), list it in 'missedRequirements'.
   5. Do NOT penalize the plan for missing a budget breakdown, as the AI does not have access to pricing data.
