@@ -107,6 +107,7 @@ We considered an architecture where the agent critiques its own plan and loops u
 *   **Why it was rejected:** It violates "Simple solutions over clever ones." Autonomous loops introduce unpredictable latency, unbounded costs, and the "blind leading the blind" problem (an LLM confused enough to write a bad plan is often confused enough to approve it). Our pipeline is strictly linear and predictable.
 
 ### 3. Multi-Query Semantic Search
+*   **Solving Information Loss:** Initially, the extraction step sometimes over-summarized complex RFPs, causing the retrieval step to miss crucial products (lowering the accuracy score). Instead of just writing a longer prompt, we implemented a "Hybrid Multi-Query" strategy. We perform specific vector searches for each extracted requirement, PLUS a broad "catch-all" search using the raw RFP text. This guarantees high recall and significantly boosts the final accuracy score.
 Instead of searching the vector store with the entire, noisy RFP text, the `Retrieve` step spawns parallel semantic searches for *each* extracted requirement (e.g., one search for "vegan meals", one for "projector"). This drastically improves retrieval accuracy and creates a highly relevant "Curated Catalog" for the planning step.
 
 ### 4. Deterministic Assembly
@@ -219,7 +220,7 @@ Building a prototype that works locally for 50 products is fundamentally differe
 
 ### 3. CI/CD & Evaluation-Driven Development (EDD)
 *   **Current State:** We have deterministic unit tests for the API contract and heuristic guardrails.
-*   **Production Vision:** How do we know a prompt tweak didn't break the AI's ability to plan weddings? We must implement **Evaluation-Driven Development (EDD)** in our CI/CD pipeline (e.g., GitHub Actions). We curate a "Golden Dataset" of 500+ historical RFPs and their ideal proposals. Every Pull Request triggers an asynchronous pipeline running these RFPs through the agent, measuring regressions in Retrieval Accuracy (Recall@K) and Plan Quality using an LLM-as-a-judge. PRs are blocked if quality degrades.
+*   **Production Vision:** How do we know a prompt tweak didn't break the AI's ability to plan weddings? We must implement **Evaluation-Driven Development (EDD)** in our CI/CD pipeline (e.g., GitHub Actions). We curate a "Golden Dataset" of 500+ historical RFPs and their ideal proposals. Every Pull Request triggers an asynchronous pipeline running these RFPs through the agent, measuring regressions in Retrieval Accuracy (Recall@K) and Plan Quality using an LLM-as-a-judge. PRs are blocked if quality degrades. This is the only scalable way to push accuracy from 70/100 to 95/100 without overfitting to a single test case.
 
 ### 4. Security, Privacy & GDPR (Data Masking)
 *   **Current State:** Raw RFP text is sent directly to OpenAI.
@@ -274,4 +275,5 @@ While this architecture successfully demonstrates a semantic RAG pipeline, it in
 ### 5. Human-in-the-Loop (HITL) & Legal Binding
 *   **The Problem:** In B2B hospitality, a proposal is a legally binding contract.
 *   **The Solution:** While this agent autonomously drafts the proposal, a production deployment requires a mandatory "Draft State" hand-off. The AI assembles the draft, notifying a human sales manager for final review, pricing adjustments, and explicit approval before client delivery.
+
 
