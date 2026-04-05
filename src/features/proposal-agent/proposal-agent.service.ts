@@ -137,38 +137,48 @@ async function extractRequirements(rfpText: string): Promise<ExtractedRequiremen
  * Step 2 in our agent pipeline: "Smart Retrieve".
  * Generates multiple specific search queries based on the extracted requirements,
  * searches the vector database in parallel, and merges/deduplicates the results.
+ * 
+ * ARCHITECTURE NOTE (Hybrid Multi-Query):
+ * We use a combination of highly specific queries (high precision) based on the extracted
+ * requirements, AND a broad "catch-all" query using the raw RFP text (high recall).
+ * This ensures we don't miss items that the LLM failed to classify as "specialRequests"
+ * (e.g., a "Farewell Brunch" buried in a complex 3-day itinerary).
  */
 async function retrieveProducts(
+  rfpText: string,
   requirements: ExtractedRequirements,
   vectorStore: VectorStore
 ): Promise<ProposalesProduct[]> {
   console.log('\n--- 🚀 Starting retrieveProducts ---');
   
-  const searchQueries: string[] = [];
+  const searchPromises: Promise<ProposalesProduct[]>[] = [];
 
-  // 1. Base search: Event type + optional guest count (provides good context for rooms/venues)
+  // 1. High-Precision Search: Event type + optional guest count
   let baseQuery = requirements.eventType || 'event space';
   if (requirements.guestCount?.primary) {
       baseQuery += ` for ${requirements.guestCount.primary} guests`;
   }
-  searchQueries.push(baseQuery);
+  console.log(`🔍 Precision Query (Base): "${baseQuery}"`);
+  searchPromises.push(vectorStore.search(baseQuery, 3));
 
-  // 2. Specific searches for each "specialRequest"
+  // 2. High-Precision Searches: Specific "specialRequests"
   if (requirements.specialRequests && requirements.specialRequests.length > 0) {
       for (const request of requirements.specialRequests) {
-          // We retain the guest count in the context for specific requests too (e.g., "lunch for 50")
           const query = requirements.guestCount?.primary 
               ? `${request} for ${requirements.guestCount.primary}`
               : request;
-          searchQueries.push(query);
+          console.log(`🔍 Precision Query (Request): "${query}"`);
+          searchPromises.push(vectorStore.search(query, 3));
       }
   }
 
-  console.log('🔍 Generated Semantic Search Queries:', searchQueries);
+  // 3. High-Recall Search: The "Catch-All" using the raw RFP text
+  // We use a higher limit here (top 10) because the raw text is noisy,
+  // but it guarantees we capture anything the extraction step missed.
+  console.log(`🔍 Recall Query (Catch-All): Raw RFP Text (Top 10)`);
+  searchPromises.push(vectorStore.search(rfpText, 10));
 
-  // 3. Execute all searches in parallel for maximum performance ("Simple solutions over clever ones")
-  // We fetch top 3 for each specific query.
-  const searchPromises = searchQueries.map(query => vectorStore.search(query, 3));
+  // 4. Execute all searches in parallel for maximum performance
   const resultsArray = await Promise.all(searchPromises);
 
   // 4. Flatten the array of arrays into a single array of products
