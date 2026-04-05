@@ -4,6 +4,7 @@ import { handleAgentRequest } from './features/proposal-agent/proposal-agent.con
 import { BaseError } from './core/errors';
 import { VectorStore } from './core/vector-store';
 import fs from 'fs';
+import path from 'path';
 
 // Create a global, shared instance of our VectorStore
 export const vectorStore = new VectorStore();
@@ -12,7 +13,9 @@ export const vectorStore = new VectorStore();
 // Load our pre-built index from file when the server starts.
 // This makes our retrieval service immediately ready without API calls.
 try {
-  const savedIndexRaw = fs.readFileSync('./vector-store.json', 'utf-8');
+  // Use process.cwd() to ensure Vercel finds the file in the project root
+  const filePath = path.join(process.cwd(), 'vector-store.json');
+  const savedIndexRaw = fs.readFileSync(filePath, 'utf-8');
   const savedIndex = JSON.parse(savedIndexRaw);
   vectorStore.loadIndex(savedIndex);
 } catch (error: any) {
