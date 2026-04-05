@@ -2,17 +2,11 @@
 
 This document outlines the guidelines and conventions used in this project to ensure high code quality and smooth collaboration—principles I consider fundamental for any production-ready project.
 
-### Code Quality
+### Code Quality & Tooling
 
-We use **ESLint** and **Prettier** to maintain a consistent code style. Before committing your code, please ensure you run:
+*Lead Engineer Note:* In a full production environment, Step 0 is setting up **ESLint**, **Prettier**, and **Husky pre-commit hooks** to enforce a consistent code style across the team. 
 
-```bash
-# Format all code
-npm run format
-
-# Lint to find any potential issues
-npm run lint
-```
+For this specific AI architecture MVP, I deliberately omitted setting up a complex linting pipeline to focus 100% of my engineering time on the core challenges: the deterministic AI boundaries, the RAG retrieval logic, and the evaluation heuristics. When scaling this to a team, automated formatting and linting in CI/CD would be an immediate requirement.
 
 ### Commit Messages
 
