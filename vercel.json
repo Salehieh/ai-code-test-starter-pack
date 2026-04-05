@@ -1,0 +1,30 @@
+{
+    "version": 2,
+    "builds": [
+      {
+        "src": "public/**/*",
+        "use": "@vercel/static"
+      },
+      {
+        "src": "src/index.ts",
+        "use": "@vercel/node",
+        "config": {
+          "includeFiles": "vector-store.json"
+        }
+      }
+    ],
+    "routes": [
+      {
+        "src": "/api/(.*)",
+        "dest": "/src/index.ts"
+      },
+      {
+        "src": "/health",
+        "dest": "/src/index.ts"
+      },
+      {
+        "src": "/(.*)",
+        "dest": "/public/$1"
+      }
+    ]
+  }

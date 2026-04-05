@@ -24,3 +24,7 @@ logs
 # Täckningsrapporter
 coverage/
 .nyc_output/
+.vercel
+
+# Architecture
+ARCHITECTURE_v2.md
