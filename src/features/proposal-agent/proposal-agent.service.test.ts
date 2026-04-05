@@ -84,4 +84,58 @@ describe('ProposalAgentService - Deterministic Assembly', () => {
       expect(payload.blocks).toHaveLength(0);
     });
   });
+
+  describe('Orchestration & Error Handling (The Cage)', () => {
+    const { getStructuredResponse } = require('../../core/llm-utils');
+    const mockGetStructuredResponse = getStructuredResponse as jest.MockedFunction<typeof getStructuredResponse>;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should propagate errors if LLM extraction fails (e.g., Zod validation error)', async () => {
+      // Arrange: Simulate the LLM returning garbage that fails Zod parsing
+      const errorMessage = 'Zod validation failed: missing required field';
+      mockGetStructuredResponse.mockRejectedValueOnce(new Error(errorMessage));
+
+      // Act & Assert: The service should fail fast and throw the error to the controller
+      await expect(ProposalAgentService.extractRequirements('Some RFP text'))
+        .rejects
+        .toThrow(errorMessage);
+    });
+
+    it('should deduplicate products retrieved from multiple parallel vector searches', async () => {
+      // Arrange: Create a mock VectorStore
+      const mockVectorStore = {
+        search: jest.fn()
+      };
+
+      // Simulate a search where the base query, special request, and catch-all return overlapping results
+      // All return product_id: 10
+      mockVectorStore.search
+        .mockResolvedValueOnce([{ product_id: 10, title: { en: 'Main Room' } }]) // Base query result
+        .mockResolvedValueOnce([
+          { product_id: 10, title: { en: 'Main Room' } }, // Overlap!
+          { product_id: 20, title: { en: 'Projector' } }
+        ]) // Special request result
+        .mockResolvedValueOnce([{ product_id: 20, title: { en: 'Projector' } }]); // Catch-all result
+
+      const mockRequirements = {
+        eventType: 'Conference',
+        specialRequests: ['Need a projector']
+      };
+
+      // Act
+      const results = await ProposalAgentService.retrieveProducts(mockRequirements as any, mockVectorStore as any);
+
+      // Assert: We should only get 2 unique products back, not 3
+      expect(results).toHaveLength(2);
+      const productIds = results.map(r => r.product_id);
+      expect(productIds).toContain(10);
+      expect(productIds).toContain(20);
+      
+      // Verify parallel execution (search was called twice)
+      expect(mockVectorStore.search).toHaveBeenCalledTimes(2);
+    });
+  });
 });

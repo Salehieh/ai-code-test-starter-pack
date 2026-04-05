@@ -30,15 +30,17 @@ export async function evaluateProposal(
   }
 
   // 2. LLM-BASED EVALUATION (Nuanced, subjective grading)
-  const systemPrompt = `You are a ruthless, highly critical Senior Quality Assurance Auditor for a premium hotel group.
+  const systemPrompt = `You are a concise, highly critical Senior Quality Assurance Auditor for a premium hotel group.
   Your job is to review a proposed event plan against the client's original Request for Proposal (RFP).
   
   RULES:
-  1. You MUST be highly critical. Do not give a 10/10 unless it is perfect.
-  2. You MUST write your 'reasoning' first, thinking step-by-step about what was requested vs what was delivered.
-  3. If the plan misses ANY specific request (like a dietary requirement or specific equipment), list it in 'missedRequirements'.
-  4. PREMIUM BRAND ALIGNMENT: Grade the 'toneScore' strictly on whether the proposal sounds luxurious, bespoke, and professional. Penalize robotic or cheap transactional language.
-  5. 'isApproved' MUST be false if there are any missed requirements or if the final score is below 80.`;
+  1. You MUST be highly critical, but your reasoning MUST be concise. Do not write an essay.
+  2. Write your 'reasoning' using a short, bulleted list. You MUST start each bullet point with a bold label like **Success:**, **Critical Gap:**, or **Tone:** to make it easily scannable.
+  3. You MUST sort your bullet points in this exact order: First list all **Success:** points, then add a blank line, then list all **Critical Gap:** points, then add a blank line, and finally end with the **Tone:** point.
+  4. If the plan misses ANY specific request (like a dietary requirement or specific equipment), list it in 'missedRequirements'.
+  5. Do NOT penalize the plan for missing a budget breakdown, as the AI does not have access to pricing data.
+  6. PREMIUM BRAND ALIGNMENT: Grade the 'toneScore' strictly on whether the proposal sounds luxurious, bespoke, and professional. Penalize robotic or cheap transactional language.
+  7. 'isApproved' MUST be false if there are any missed requirements or if the final score is below 80.`;
 
   const userPrompt = `--- ORIGINAL RFP FROM CLIENT ---
   ${rfpText}
