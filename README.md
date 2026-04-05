@@ -7,7 +7,7 @@
 
 To eliminate all friction and allow you to test the solution immediately, a live, interactive web demo of the API is available here:
 
-**URL:** [https://ai-code-test-starter-pack.vercel.app](https://ai-code-test-starter-pack.vercel.app)
+**URL:** https://ai-code-test-starter-pack.vercel.app
 
 ---
 
@@ -45,6 +45,7 @@ For a deep dive into my technical and architectural decisions, please see the de
       ```
       OPENAI_API_KEY=sk-xxxxxxxxxxxx
       PROPOSALES_API_KEY=xxxxxxxxxxxx
+      PROPOSALES_COMPANY_ID=xxxxxxxxxxxx
       ```
 
 ### 4. Running the Application

@@ -6,7 +6,7 @@ This document outlines the guidelines and conventions used in this project to en
 
 *Lead Engineer Note:* In a full production environment, Step 0 is setting up **ESLint**, **Prettier**, and **Husky pre-commit hooks** to enforce a consistent code style across the team. 
 
-For this specific AI architecture MVP, I deliberately omitted setting up a complex linting pipeline to focus 100% of my engineering time on the core challenges: the deterministic AI boundaries, the RAG retrieval logic, and the evaluation heuristics. When scaling this to a team, automated formatting and linting in CI/CD would be an immediate requirement.
+For this specific AI architecture MVP, I deliberately omitted setting up a complex linting pipeline to focus 100% of my engineering time on the core challenges: the deterministic AI boundaries, the RAG retrieval logic, and the evaluation system. When scaling this to a team, automated formatting and linting in CI/CD would be an immediate requirement.
 
 ### Commit Messages
 
@@ -15,6 +15,7 @@ This project follows the **Conventional Commits** standard. This creates a clean
 Examples of valid commit messages:
 
 -   **feat:** `feat: implement user authentication endpoint`
+-   **feat:** `feat(core): implement embedding LLM util`
 -   **fix:** `fix: correct calculation in discount logic`
 -   **docs:** `docs: update ARCHITECTURE.md with new decisions`
 -   **test:** `test: add integration test for agent service`

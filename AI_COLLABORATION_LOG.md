@@ -100,15 +100,15 @@ At two occasions, the AI (Gemini 3.1 Pro) in Cursor would get stuck in a plannin
 
 
 ## Summary
-Throughout this project, I used AI (Gemini 3.1 Pro within Cursor) for practically everything: 
+Throughout this project, I used AI (Almost exclusively Gemini 3.1 Pro within Cursor) for practically everything: 
 
-**Synthesizing all initial context** (Technical Case's instructions, my own Proposales customer and business research, AI best practices for this type of assignment (that I've also researched in a similar fashion), etc.) into a 'God-prompt'.
+**Synthesizing all initial context** into a God-prompt.
 
-**Facilitating my internalization of the system architecture**; accelerating 'building' my own internal model of the system
+**Facilitating my internalization of the system architecture**; accelerating 'building' my own internal model of the system.
 
-**Ascertaining the overarching architecture**, before delving into details: Arriving at a broad, non-detailed implementation sequence for the entire project, which is to be used as a compass, for not getting lost/stuck, in the following steps
+**Ascertaining the overarching architecture**, before delving into details: Arriving at a broad, non-detailed implementation sequence for the entire project, which is to be used as a compass, for not getting lost/stuck, in the following steps.
 
-**Brainstorming the details from each step of the overarching archiecture** based on the God-prompt and the codebase. (Coming up with alternative approaches, weighing their pros & cons, with regard to the God-prompt and the codebase)
+**Brainstorming the details from each step of the overarching archiecture** based on the God-prompt and the codebase. (Coming up with alternative approaches, weighing their pros & cons, with regard to the God-prompt and the codebase).
 
 **Crafting a clear, detailed implementation plan** based on the brainstorming, detailing exactly what is to be implemented.
 
@@ -118,6 +118,8 @@ Throughout this project, I used AI (Gemini 3.1 Pro within Cursor) for practicall
 
 **Creating tests** (Of course as per the previous 'pipeline': Brainstorming based on God-prompt --> Weighing pros & cons --> Crafting an implementation plan --> Execution of said plan).
 
-**Debugging, writing up ARCHITECTURE.md as we go; documenting our reasoning and trade-offs**
+**Debugging.**
 
-I thus systematically utilized AI to accelerate the process, and maximize the quality of the output. By maintaining strict directive control over the AI; never trusting it, by forcing the AI to seriously evaluate alternatives and weigh their pros and cons against our "north star", our God-prompt, and our current codebase, I ensure the final product is built with strict engineering rigor. 
+**writing up ARCHITECTURE.md as we go; documenting our reasoning and trade-offs.**
+
+I thus systematically utilized AI to accelerate the process, and maximize the quality of the output. By maintaining strict directive control over the AI; never trusting it; by forcing the AI to seriously evaluate alternatives and weigh their pros and cons against our "north star"; our God-prompt, and our current codebase, I ensure the final product is built with strict engineering rigor.
