@@ -1,4 +1,4 @@
-# Proposales AI Engineer - Technical Case
+# Proposales Lead AI Engineer - Technical Case
 **By:** Samuel Salehieh
 
 ---
@@ -7,7 +7,7 @@
 
 To eliminate all friction and allow you to test the solution immediately, a live, interactive web demo of the API is available here:
 
-**URL:** https://ai-code-test-starter-pack.vercel.app
+**Live Demo:** [ai-code-test-starter-pack.vercel.app](https://ai-code-test-starter-pack.vercel.app)
 
 ---
 
